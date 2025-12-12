@@ -925,6 +925,14 @@ textarea.form-control {
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
+                                <!-- Hidden fields for package benefit data -->
+                                <input type="hidden" name="package_assignment_ids[]" value="">
+                                <input type="hidden" name="package_names[]" value="">
+                                <input type="hidden" name="package_types[]" value="">
+                                <input type="hidden" name="benefit_types[]" value="">
+                                <input type="hidden" name="benefit_descriptions[]" value="">
+                                <input type="hidden" name="deduction_amounts[]" value="0">
+                                <input type="hidden" name="is_package_deductions[]" value="false">
                             </div>
                         </div>
                     </div>
@@ -2567,6 +2575,14 @@ function resetCustomerPackages() {
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
+                    <!-- Hidden fields for package benefit data -->
+                    <input type="hidden" name="package_assignment_ids[]" value="">
+                    <input type="hidden" name="package_names[]" value="">
+                    <input type="hidden" name="package_types[]" value="">
+                    <input type="hidden" name="benefit_types[]" value="">
+                    <input type="hidden" name="benefit_descriptions[]" value="">
+                    <input type="hidden" name="deduction_amounts[]" value="0">
+                    <input type="hidden" name="is_package_deductions[]" value="false">
                 </div>
             </div>
         `;
@@ -2772,6 +2788,30 @@ function resetCustomerPackages() {
                         console.log(`⬆️ Updated priceInput in row due to package benefit: ${priceInput.value}`);
                     }
 
+                    // CRITICAL: Update hidden form fields with package benefit data for saving
+                    const pkgAssignmentInput = row.querySelector('input[name="package_assignment_ids[]"]');
+                    const pkgNameInput = row.querySelector('input[name="package_names[]"]');
+                    const pkgTypeInput = row.querySelector('input[name="package_types[]"]');
+                    const benefitTypeInput = row.querySelector('input[name="benefit_types[]"]');
+                    const benefitDescInput = row.querySelector('input[name="benefit_descriptions[]"]');
+                    const deductionAmtInput = row.querySelector('input[name="deduction_amounts[]"]');
+                    const isPkgDeductionInput = row.querySelector('input[name="is_package_deductions[]"]');
+
+                    if (pkgAssignmentInput) pkgAssignmentInput.value = benefitApplied.packageId || '';
+                    if (pkgNameInput) pkgNameInput.value = benefitApplied.packageUsed || '';
+                    if (pkgTypeInput) pkgTypeInput.value = benefitApplied.packageType || 'service_package';
+                    if (benefitTypeInput) benefitTypeInput.value = benefitApplied.benefitType || '';
+                    if (benefitDescInput) benefitDescInput.value = benefitApplied.message || `Package benefit: -₹${discountAmount.toFixed(2)}`;
+                    if (deductionAmtInput) deductionAmtInput.value = discountAmount.toFixed(2);
+                    if (isPkgDeductionInput) isPkgDeductionInput.value = 'true';
+
+                    console.log('📦 Package benefit hidden fields updated:', {
+                        packageId: benefitApplied.packageId,
+                        packageName: benefitApplied.packageUsed,
+                        benefitType: benefitApplied.benefitType,
+                        deduction: discountAmount
+                    });
+
                     // Show package benefit indicator on the row
                     let benefitDiv = row.querySelector('.package-benefit');
                     if (!benefitDiv) {
@@ -2792,6 +2832,24 @@ function resetCustomerPackages() {
                     if (priceInput) {
                         priceInput.value = basePrice.toFixed(2);
                     }
+                    
+                    // CRITICAL: Clear package benefit hidden fields when no benefit applies
+                    const pkgAssignmentInput = row.querySelector('input[name="package_assignment_ids[]"]');
+                    const pkgNameInput = row.querySelector('input[name="package_names[]"]');
+                    const pkgTypeInput = row.querySelector('input[name="package_types[]"]');
+                    const benefitTypeInput = row.querySelector('input[name="benefit_types[]"]');
+                    const benefitDescInput = row.querySelector('input[name="benefit_descriptions[]"]');
+                    const deductionAmtInput = row.querySelector('input[name="deduction_amounts[]"]');
+                    const isPkgDeductionInput = row.querySelector('input[name="is_package_deductions[]"]');
+
+                    if (pkgAssignmentInput) pkgAssignmentInput.value = '';
+                    if (pkgNameInput) pkgNameInput.value = '';
+                    if (pkgTypeInput) pkgTypeInput.value = '';
+                    if (benefitTypeInput) benefitTypeInput.value = '';
+                    if (benefitDescInput) benefitDescInput.value = '';
+                    if (deductionAmtInput) deductionAmtInput.value = '0';
+                    if (isPkgDeductionInput) isPkgDeductionInput.value = 'false';
+                    
                     row.querySelector('.package-benefit')?.remove(); // Remove benefit indicator if no benefit
                     itemTotal = basePrice * quantity; // Item total is just base price * quantity
                 }
@@ -2946,6 +3004,8 @@ function resetCustomerPackages() {
         let appliedPackage = null;
         let appliedPackageId = null;
         let benefitType = null;
+        let appliedPackageType = null;
+        let benefitMessage = null;
 
         // Check each package
         for (const pkg of customerPackages) {
@@ -2981,7 +3041,10 @@ function resetCustomerPackages() {
                     const totalServiceCost = servicePrice * quantity;
                     totalBenefit = (totalServiceCost * discountPercent) / 100;
                     appliedPackage = pkg.name;
+                    appliedPackageId = pkg.assignment_id || pkg.id;
+                    appliedPackageType = 'yearly_membership';
                     benefitType = 'yearly_discount';
+                    benefitMessage = `${discountPercent}% yearly membership discount applied from ${pkg.name}`;
                     console.log(`✅ Yearly membership discount applied: ${pkg.name}, ${discountPercent}% off = ₹${totalBenefit.toFixed(2)}`);
                     break; // Use first matching yearly package
                 } else {
@@ -2991,7 +3054,10 @@ function resetCustomerPackages() {
                         const totalServiceCost = servicePrice * quantity;
                         totalBenefit = (totalServiceCost * discountPercent) / 100;
                         appliedPackage = pkg.name || 'Yearly Membership';
+                        appliedPackageId = pkg.assignment_id || pkg.id;
+                        appliedPackageType = 'yearly_membership';
                         benefitType = 'yearly_discount';
+                        benefitMessage = `${discountPercent}% yearly membership discount applied from ${appliedPackage}`;
                         console.log(`✅ Yearly membership discount applied: ${appliedPackage}, ${discountPercent}% off = ₹${totalBenefit.toFixed(2)}`);
                         break;
                     } else {
@@ -3020,7 +3086,9 @@ function resetCustomerPackages() {
                     totalBenefit += benefitAmount;
                     appliedPackage = pkg.name;
                     appliedPackageId = pkg.assignment_id || pkg.id;
+                    appliedPackageType = 'service_package';
                     benefitType = 'free_sessions';
+                    benefitMessage = `${sessionsToUse} free session(s) applied from ${pkg.name}`;
 
                     console.log('   Benefit Details:', {
                         sessionsToUse,
@@ -3067,7 +3135,9 @@ function resetCustomerPackages() {
                     totalBenefit += creditToUse;
                     appliedPackage = pkg.name;
                     appliedPackageId = pkg.assignment_id || pkg.id;
+                    appliedPackageType = 'prepaid';
                     benefitType = 'prepaid_credit';
+                    benefitMessage = `₹${creditToUse.toFixed(2)} prepaid credit applied from ${pkg.name}`;
 
                     // Track cumulative usage for this invoice
                     cumulativePackageUsage[packageKey] = alreadyUsed + creditToUse;
@@ -3109,7 +3179,9 @@ function resetCustomerPackages() {
                     totalBenefit += serviceCost;
                     appliedPackage = pkg.name;
                     appliedPackageId = pkg.assignment_id || pkg.id;
+                    appliedPackageType = 'membership';
                     benefitType = 'membership_unlimited';
+                    benefitMessage = `Unlimited access from ${pkg.name}`;
 
                     break; // First matching package wins
                 } else {
@@ -3148,7 +3220,9 @@ function resetCustomerPackages() {
                     totalBenefit += discountAmount;
                     appliedPackage = pkg.name;
                     appliedPackageId = pkg.assignment_id;
+                    appliedPackageType = 'student_offer';
                     benefitType = 'student_discount';
+                    benefitMessage = `${pkg.discount_percentage}% student discount applied from ${pkg.name}`;
                     console.log(`✅ Student offer discount applied: ${pkg.name}, ${pkg.discount_percentage}% off = ₹${discountAmount.toFixed(2)} (service ${numericServiceId} is in applicable list: ${numericApplicableIds})`);
                     break; // Use first matching valid student offer
                 } else {
@@ -3164,7 +3238,14 @@ function resetCustomerPackages() {
         console.log('💰 Total benefit calculated:', totalBenefit.toFixed(2));
         console.log('📦 Package applied:', appliedPackage ? `${appliedPackage} (${benefitType})` : 'None');
 
-        return { discount: totalBenefit, packageUsed: appliedPackage, packageId: appliedPackageId, benefitType: benefitType };
+        return { 
+            discount: totalBenefit, 
+            packageUsed: appliedPackage, 
+            packageId: appliedPackageId, 
+            packageType: appliedPackageType,
+            benefitType: benefitType,
+            message: benefitMessage
+        };
     }
 
 

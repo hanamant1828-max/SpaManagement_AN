@@ -2235,6 +2235,15 @@ def update_integrated_invoice(invoice_id):
         service_quantities = request.form.getlist('service_quantities[]')
         appointment_ids = request.form.getlist('appointment_ids[]')
         staff_ids = request.form.getlist('staff_ids[]')
+        
+        # CRITICAL: Read package benefit data from form
+        package_assignment_ids = request.form.getlist('package_assignment_ids[]')
+        package_names = request.form.getlist('package_names[]')
+        package_types = request.form.getlist('package_types[]')
+        benefit_types = request.form.getlist('benefit_types[]')
+        benefit_descriptions = request.form.getlist('benefit_descriptions[]')
+        deduction_amounts = request.form.getlist('deduction_amounts[]')
+        is_package_deductions = request.form.getlist('is_package_deductions[]')
 
         for i, service_id in enumerate(service_ids):
             if service_id and str(service_id).strip():
@@ -2245,11 +2254,43 @@ def update_integrated_invoice(invoice_id):
                         'message': f'Staff member is required for service #{i+1}. Please assign staff to all services.'
                     }), 400
 
+                # Parse package benefit data for this service
+                pkg_assignment_id = None
+                if i < len(package_assignment_ids) and package_assignment_ids[i] and str(package_assignment_ids[i]).strip():
+                    try:
+                        pkg_assignment_id = int(package_assignment_ids[i])
+                    except ValueError:
+                        pkg_assignment_id = None
+                
+                pkg_name = package_names[i] if i < len(package_names) else ''
+                pkg_type = package_types[i] if i < len(package_types) else ''
+                ben_type = benefit_types[i] if i < len(benefit_types) else ''
+                ben_desc = benefit_descriptions[i] if i < len(benefit_descriptions) else ''
+                
+                deduction_amt = 0.0
+                if i < len(deduction_amounts) and deduction_amounts[i]:
+                    try:
+                        deduction_amt = float(deduction_amounts[i])
+                    except ValueError:
+                        deduction_amt = 0.0
+                
+                is_pkg_deduction = False
+                if i < len(is_package_deductions) and is_package_deductions[i]:
+                    is_pkg_deduction = is_package_deductions[i].lower() == 'true'
+
                 services_data.append({
                     'service_id': int(service_id),
                     'quantity': float(service_quantities[i]) if i < len(service_quantities) else 1,
                     'appointment_id': int(appointment_ids[i]) if i < len(appointment_ids) and appointment_ids[i] else None,
-                    'staff_id': int(staff_id)
+                    'staff_id': int(staff_id),
+                    # Package benefit data
+                    'package_assignment_id': pkg_assignment_id,
+                    'package_name': pkg_name,
+                    'package_type': pkg_type,
+                    'benefit_type': ben_type,
+                    'benefit_description': ben_desc,
+                    'deduction_amount': deduction_amt,
+                    'is_package_deduction': is_pkg_deduction
                 })
 
         # Parse inventory data (same as create)
@@ -2276,11 +2317,20 @@ def update_integrated_invoice(invoice_id):
                     'staff_id': int(product_staff_ids[i])
                 })
 
-        # Recalculate amounts (same logic as create)
-        services_subtotal = sum(
-            Service.query.get(s['service_id']).price * s['quantity']
-            for s in services_data if Service.query.get(s['service_id'])
-        )
+        # Recalculate amounts (accounting for package deductions)
+        services_subtotal = 0
+        total_package_deductions = 0
+        for s in services_data:
+            service = Service.query.get(s['service_id'])
+            if service:
+                original_price = service.price * s['quantity']
+                deduction = s.get('deduction_amount', 0.0)
+                is_pkg_deduction = s.get('is_package_deduction', False)
+                if is_pkg_deduction and deduction > 0:
+                    total_package_deductions += deduction
+                    services_subtotal += original_price - deduction
+                else:
+                    services_subtotal += original_price
 
         inventory_subtotal = sum(
             item['unit_price'] * item['quantity']
@@ -2326,8 +2376,12 @@ def update_integrated_invoice(invoice_id):
         invoice.tips_amount = tips_amount
         invoice.total_amount = total_amount
         invoice.balance_due = total_amount - invoice.amount_paid
+        
+        # Save package deductions total if the field exists
+        if hasattr(invoice, 'package_deductions'):
+            invoice.package_deductions = total_package_deductions
 
-        # Re-create invoice items
+        # Re-create invoice items with package benefit data
         for service_data in services_data:
             service = Service.query.get(service_data['service_id'])
             if service:
@@ -2339,6 +2393,12 @@ def update_integrated_invoice(invoice_id):
                         staff_name = staff.full_name
 
                 original_price = service.price * service_data['quantity']
+                
+                # Get package benefit data
+                deduction_amount = service_data.get('deduction_amount', 0.0)
+                is_package_deduction = service_data.get('is_package_deduction', False)
+                final_amount = original_price - deduction_amount if is_package_deduction else original_price
+                
                 item = InvoiceItem(
                     invoice_id=invoice.id,
                     item_type='service',
@@ -2349,12 +2409,23 @@ def update_integrated_invoice(invoice_id):
                     quantity=service_data['quantity'],
                     unit_price=service.price,
                     original_amount=original_price,
-                    final_amount=original_price,
-                    staff_revenue_price=original_price,
+                    final_amount=final_amount,
+                    deduction_amount=deduction_amount,
+                    staff_revenue_price=original_price,  # Staff revenue is always original price
                     staff_id=staff_id,
-                    staff_name=staff_name
+                    staff_name=staff_name,
+                    # CRITICAL: Save package benefit details for viewing/editing invoice later
+                    is_package_deduction=is_package_deduction,
+                    package_assignment_id=service_data.get('package_assignment_id'),
+                    package_name=service_data.get('package_name') or None,
+                    package_type=service_data.get('package_type') or None,
+                    benefit_type=service_data.get('benefit_type') or None,
+                    benefit_description=service_data.get('benefit_description') or None
                 )
                 db.session.add(item)
+                
+                if is_package_deduction:
+                    app.logger.info(f"📦 Package benefit saved for service '{service.name}': Deduction=₹{deduction_amount:.2f}, Package={service_data.get('package_name')}")
 
         for item_data in inventory_data:
             batch = InventoryBatch.query.get(item_data['batch_id'])
