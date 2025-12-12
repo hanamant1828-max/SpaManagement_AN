@@ -257,8 +257,13 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-light sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('website_home') }}">
-                <i class="fas fa-spa me-2"></i>Spa & Salon
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('website_home') }}">
+                {% if business_logo %}
+                <img src="{{ business_logo }}" alt="{{ business_name }}" style="height: 40px; width: auto; object-fit: contain;" class="me-2">
+                {% else %}
+                <i class="fas fa-spa me-2"></i>
+                {% endif %}
+                <span>{{ business_name }}</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
