@@ -1211,7 +1211,7 @@ textarea.form-control {
                     <div class="grand-total" id="grandTotal">₹0.00</div>
 
                     <div class="summary-actions">
-                        <button type="submit" class="btn btn-success btn-lg" id="saveBtn" onclick="validateAndSubmitForm(); return false;">
+                        <button type="button" class="btn btn-success btn-lg" id="saveBtn" onclick="validateAndSubmitForm();">
                             <span class="btn-text">
                                 <i class="fas fa-check-circle"></i>
                                 Save
@@ -4052,7 +4052,9 @@ function validateAndSubmitForm() {
 
     // Add payment method and amount data for tracking
     const paymentMethod = document.getElementById('paymentMethod').value;
-    const paymentStatus = document.getElementById('paymentStatus').value; // Assuming this element exists in the form
+    const paymentTerms = document.getElementById('paymentTerms').value;
+    // Derive payment status from payment terms - immediate means paid, others are pending
+    const paymentStatus = paymentTerms === 'immediate' ? 'paid' : 'pending';
     const grandTotal = parseFloat(document.getElementById('grandTotal').textContent.replace(/[₹,]/g, '')) || 0;
 
     formData.append('payment_method', paymentMethod);
