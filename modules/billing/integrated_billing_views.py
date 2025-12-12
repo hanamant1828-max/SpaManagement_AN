@@ -2416,6 +2416,9 @@ def print_professional_invoice(invoice_id):
     business_logo_setting = SystemSetting.query.filter_by(key='business_logo').first()
     business_logo = business_logo_setting.value if business_logo_setting else None
 
+    # Convert amount to words
+    amount_in_words = number_to_words(invoice.total_amount)
+    
     # Render HTML template with dynamic GST information
     html_string = render_template('professional_invoice_print.html',
                                  invoice=invoice,
@@ -2424,6 +2427,7 @@ def print_professional_invoice(invoice_id):
                                  staff_names=staff_names,
                                  gst_config=gst_config,
                                  business_logo=business_logo,
+                                 amount_in_words=amount_in_words,
                                  total_amount_words=number_to_words)
 
     try:
