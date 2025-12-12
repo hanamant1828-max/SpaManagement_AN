@@ -452,18 +452,11 @@
                         <td class="text-center">{{ loop.index }}</td>
                         <td>
                             <strong>{{ item.item_name }}</strong>
-                            {% if item.description %}<div class="item-description">{{ item.description }}</div>{% endif %}
                             {% if item.batch_name %}<div class="item-description">Batch: {{ item.batch_name }}</div>{% endif %}
                             {% if item.is_package_deduction and item.package_name %}
                             <div class="item-description" style="color: #28a745; font-weight: 500;">
-                                <span style="background: #e8f5e9; padding: 2px 6px; border-radius: 3px;">
-                                    📦 {{ item.package_name }}
-                                    {% if item.benefit_type %} ({{ item.benefit_type }}){% endif %}
-                                </span>
+                                {{ item.package_name }}{% if item.benefit_type %} ({{ item.benefit_type }}){% endif %}
                             </div>
-                            {% if item.benefit_description %}
-                            <div class="item-description" style="color: #666; font-size: 0.7rem;">{{ item.benefit_description }}</div>
-                            {% endif %}
                             {% endif %}
                         </td>
                         <td class="text-center">{% if item.item_type == 'service' %}998314{% else %}3304{% endif %}</td>
@@ -495,46 +488,16 @@
                 </tbody>
             </table>
 
-            <!-- Package Benefits Summary (if any package deductions applied) -->
+            <!-- Package Savings Summary (brief) -->
             {% set package_items = invoice_items | selectattr('is_package_deduction') | list %}
             {% if package_items %}
-            <div style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border: 1px solid #81c784; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
-                <h6 style="color: #2e7d32; font-weight: 600; margin-bottom: 12px; font-size: 0.95rem;">
-                    📦 Package Benefits Applied
-                </h6>
-                <table style="width: 100%; font-size: 0.85rem;">
-                    <thead>
-                        <tr style="border-bottom: 1px solid #81c784;">
-                            <th style="text-align: left; padding: 6px; color: #2e7d32;">Package</th>
-                            <th style="text-align: left; padding: 6px; color: #2e7d32;">Service/Item</th>
-                            <th style="text-align: left; padding: 6px; color: #2e7d32;">Benefit Type</th>
-                            <th style="text-align: right; padding: 6px; color: #2e7d32;">Original</th>
-                            <th style="text-align: right; padding: 6px; color: #2e7d32;">Savings</th>
-                            <th style="text-align: right; padding: 6px; color: #2e7d32;">You Pay</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% set total_package_savings = namespace(value=0) %}
-                        {% for item in package_items %}
-                        {% set total_package_savings.value = total_package_savings.value + (item.deduction_amount or 0) %}
-                        <tr>
-                            <td style="padding: 6px; color: #333;">{{ item.package_name or 'Package' }}</td>
-                            <td style="padding: 6px; color: #333;">{{ item.item_name }}</td>
-                            <td style="padding: 6px; color: #666;">{{ item.benefit_type or 'Included' }}</td>
-                            <td style="padding: 6px; text-align: right; color: #666;">₹{{ "%.2f"|format(item.original_amount or (item.quantity * item.unit_price)) }}</td>
-                            <td style="padding: 6px; text-align: right; color: #28a745; font-weight: 600;">-₹{{ "%.2f"|format(item.deduction_amount or 0) }}</td>
-                            <td style="padding: 6px; text-align: right; color: #333; font-weight: 600;">₹{{ "%.2f"|format(item.final_amount) }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                    <tfoot>
-                        <tr style="border-top: 2px solid #81c784; background: #a5d6a7;">
-                            <td colspan="4" style="padding: 8px; text-align: right; font-weight: 700; color: #1b5e20;">Total Package Savings:</td>
-                            <td style="padding: 8px; text-align: right; font-weight: 700; color: #1b5e20; font-size: 1rem;">-₹{{ "%.2f"|format(total_package_savings.value) }}</td>
-                            <td style="padding: 8px;"></td>
-                        </tr>
-                    </tfoot>
-                </table>
+            {% set total_package_savings = namespace(value=0) %}
+            {% for item in package_items %}
+                {% set total_package_savings.value = total_package_savings.value + (item.deduction_amount or 0) %}
+            {% endfor %}
+            <div style="background: #e8f5e9; border: 1px solid #81c784; border-radius: 8px; padding: 10px 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #2e7d32; font-weight: 500; font-size: 0.9rem;">Package Benefits Applied</span>
+                <span style="color: #1b5e20; font-weight: 700; font-size: 1rem;">Total Savings: ₹{{ "%.2f"|format(total_package_savings.value) }}</span>
             </div>
             {% endif %}
 
