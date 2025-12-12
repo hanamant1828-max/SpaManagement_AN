@@ -1585,6 +1585,13 @@ def create_professional_invoice():
                                 package_discount_applied = True
                                 package_deductions_applied += 1
 
+                                # CRITICAL: Save package benefit details for viewing/editing invoice later
+                                item.package_assignment_id = student_offer_assignment.id
+                                item.package_name = student_offer.name
+                                item.package_type = 'student_offer'
+                                item.benefit_type = 'discount'
+                                item.benefit_description = f"{student_offer.discount_percentage}% student discount applied"
+
                                 # CRITICAL: staff_revenue_price is ALREADY set to original price above
                                 # So staff gets commission on full ₹{service_amount}, customer pays ₹{item.final_amount}
 
@@ -1617,6 +1624,13 @@ def create_professional_invoice():
                                 package_discount_applied = True
                                 package_deductions_applied += 1
 
+                                # CRITICAL: Save package benefit details for viewing/editing invoice later
+                                item.package_assignment_id = yearly_membership_assignment.id
+                                item.package_name = yearly_membership.name
+                                item.package_type = 'yearly_membership'
+                                item.benefit_type = 'discount'
+                                item.benefit_description = f"{yearly_membership.discount_percent}% yearly membership discount applied"
+
                                 db.session.flush()
                                 app.logger.info(f"✅ Yearly membership '{yearly_membership.name}' {yearly_membership.discount_percent}% discount applied: ₹{discount_amount:.2f} on ₹{service_amount:.2f}. Staff revenue stays ₹{item.staff_revenue_price:.2f}")
 
@@ -1639,6 +1653,14 @@ def create_professional_invoice():
                             item.is_package_deduction = True
                             # staff_revenue_price remains unchanged - staff gets commission on original price
                             package_deductions_applied += 1
+
+                            # CRITICAL: Save package benefit details for viewing/editing invoice later
+                            item.package_benefit_id = package_result.get('usage_id')
+                            item.package_assignment_id = package_result.get('assignment_id')
+                            item.package_name = package_result.get('package_name', 'Package Benefit')
+                            item.package_type = package_result.get('package_type', 'service_package')
+                            item.benefit_type = package_result.get('benefit_type', 'free')
+                            item.benefit_description = package_result.get('message', 'Package benefit applied')
 
                             db.session.flush()
 
