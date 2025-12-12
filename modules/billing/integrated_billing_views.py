@@ -557,7 +557,16 @@ def integrated_billing(customer_id=None):
                             'appointment_id': item.appointment_id if hasattr(item, 'appointment_id') else None,
                             'staff_id': item.staff_id if hasattr(item, 'staff_id') else None,
                             'unit_price': item.unit_price,
-                            'deduction_amount': item.deduction_amount if hasattr(item, 'deduction_amount') else 0
+                            'deduction_amount': item.deduction_amount if hasattr(item, 'deduction_amount') else 0,
+                            'is_package_deduction': item.is_package_deduction if hasattr(item, 'is_package_deduction') else False,
+                            'package_benefit_id': item.package_benefit_id if hasattr(item, 'package_benefit_id') else None,
+                            'package_assignment_id': item.package_assignment_id if hasattr(item, 'package_assignment_id') else None,
+                            'package_name': item.package_name if hasattr(item, 'package_name') else None,
+                            'package_type': item.package_type if hasattr(item, 'package_type') else None,
+                            'benefit_type': item.benefit_type if hasattr(item, 'benefit_type') else None,
+                            'benefit_description': item.benefit_description if hasattr(item, 'benefit_description') else None,
+                            'original_amount': item.original_amount if hasattr(item, 'original_amount') else item.unit_price * item.quantity,
+                            'final_amount': item.final_amount if hasattr(item, 'final_amount') else item.unit_price * item.quantity
                         })
                     elif item.item_type == 'inventory':
                         product_items.append({

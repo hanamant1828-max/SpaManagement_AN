@@ -212,6 +212,14 @@ class PackageBillingService:
                 db.session.commit()
                 logger.info(f"Package benefit applied successfully: {result}")
 
+            # Add assignment_id and package_type to the result for invoice item tracking
+            if selected_package.package_assignment:
+                result['assignment_id'] = selected_package.package_assignment.id
+                result['package_type'] = selected_package.package_assignment.package_type
+            else:
+                result['assignment_id'] = None
+                result['package_type'] = None
+
             return result
 
         except Exception as e:

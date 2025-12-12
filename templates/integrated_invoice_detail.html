@@ -75,6 +75,7 @@
         <!-- Invoice Items -->
         <div class="col-lg-8">
             <!-- Services Section -->
+            {% set service_items = invoice_items | selectattr('item_type', 'equalto', 'service') | list %}
             {% if service_items %}
             <div class="invoice-card">
                 <div class="card">
@@ -96,11 +97,40 @@
                                 <tbody>
                                     {% for item in service_items %}
                                     <tr>
-                                        <td><strong>{{ item.item_name }}</strong></td>
-                                        <td>{{ item.description or 'N/A' }}</td>
+                                        <td>
+                                            <strong>{{ item.item_name }}</strong>
+                                            {% if item.staff_name %}
+                                            <br><small class="text-muted">Staff: {{ item.staff_name }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {{ item.description or '' }}
+                                            {% if item.is_package_deduction and item.package_name %}
+                                            <div class="mt-1">
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-gift me-1"></i>{{ item.package_name }}
+                                                </span>
+                                                {% if item.benefit_description %}
+                                                <br><small class="text-success">{{ item.benefit_description }}</small>
+                                                {% endif %}
+                                            </div>
+                                            {% endif %}
+                                        </td>
                                         <td class="text-center">{{ item.quantity }}</td>
-                                        <td class="text-end">₹{{ "{:.2f}".format(item.unit_price) }}</td>
-                                        <td class="text-end">₹{{ "{:.2f}".format(item.final_amount) }}</td>
+                                        <td class="text-end">
+                                            ₹{{ "{:.2f}".format(item.unit_price) }}
+                                            {% if item.is_package_deduction and item.deduction_amount > 0 %}
+                                            <br><small class="text-success">-₹{{ "{:.2f}".format(item.deduction_amount) }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if item.is_package_deduction and item.original_amount != item.final_amount %}
+                                            <del class="text-muted">₹{{ "{:.2f}".format(item.original_amount) }}</del><br>
+                                            <span class="text-success fw-bold">₹{{ "{:.2f}".format(item.final_amount) }}</span>
+                                            {% else %}
+                                            ₹{{ "{:.2f}".format(item.final_amount) }}
+                                            {% endif %}
+                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -118,7 +148,8 @@
             {% endif %}
 
             <!-- Inventory Items Section -->
-            {% if inventory_items %}
+            {% set inventory_items_list = invoice_items | selectattr('item_type', 'equalto', 'inventory') | list %}
+            {% if inventory_items_list %}
             <div class="invoice-card">
                 <div class="card">
                     <div class="card-header bg-info text-white">
@@ -137,12 +168,15 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for item in inventory_items %}
+                                    {% for item in inventory_items_list %}
                                     <tr>
                                         <td>
                                             <strong>{{ item.item_name }}</strong>
                                             {% if item.description %}
                                             <br><small class="text-muted">{{ item.description }}</small>
+                                            {% endif %}
+                                            {% if item.staff_name %}
+                                            <br><small class="text-muted">Sold by: {{ item.staff_name }}</small>
                                             {% endif %}
                                         </td>
                                         <td>
