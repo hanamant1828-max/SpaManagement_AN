@@ -1060,6 +1060,51 @@ $(document).ready(function() {
         {% endif %}
 
         console.log('✅ Select2 initialized for customer dropdown');
+
+        // Initialize Select2 on service dropdown for searchable services
+        $('#serviceId').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search and select service...',
+            allowClear: true,
+            width: '100%',
+            matcher: function(params, data) {
+                if ($.trim(params.term) === '') {
+                    return data;
+                }
+                if (typeof data.text === 'undefined') {
+                    return null;
+                }
+                // Search in text (service name and price)
+                var searchTerm = params.term.toLowerCase();
+                var text = data.text.toLowerCase();
+                if (text.indexOf(searchTerm) > -1) {
+                    return data;
+                }
+                return null;
+            }
+        });
+
+        // Handle Select2 change event for service
+        $('#serviceId').on('select2:select', function(e) {
+            console.log('✅ Service selected via Select2:', e.params.data);
+            // Trigger the existing change handler
+            const option = this.options[this.selectedIndex];
+            currentService = option.value ? {
+                id: option.value,
+                price: parseFloat(option.dataset.price || 0)
+            } : null;
+            recalculateTotals();
+            validateAssignForm();
+        });
+
+        $('#serviceId').on('select2:clear', function(e) {
+            console.log('Service selection cleared');
+            currentService = null;
+            recalculateTotals();
+            validateAssignForm();
+        });
+
+        console.log('✅ Select2 initialized for service dropdown');
     } else {
         console.warn('Select2 not available, using standard dropdown');
     }
