@@ -155,7 +155,6 @@
                                     <th>Preferred Date/Time</th>
                                     <th>Amount</th>
                                     <th>Received</th>
-                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -208,25 +207,12 @@
                                             {{ group.created_at.strftime('%b %d, %I:%M %p') }}
                                         </small>
                                     </td>
-                                    <td>
-                                        {% if group.status == 'scheduled' %}
-                                        <span class="badge bg-warning">Pending Review</span>
-                                        {% elif group.status == 'confirmed' %}
-                                        <span class="badge bg-success">Accepted</span>
-                                        {% elif group.status == 'cancelled' %}
-                                        <span class="badge bg-danger">Rejected</span>
-                                        {% elif group.status == 'completed' %}
-                                        <span class="badge bg-info">Completed</span>
-                                        {% else %}
-                                        <span class="badge bg-secondary">{{ group.status }}</span>
-                                        {% endif %}
-                                    </td>
                                     </tr>
 
                                 <!-- Sub-appointments (hidden by default) -->
                                 {% if group.bookings|length > 1 %}
                                 <tr class="sub-appointments" id="sub-{{ group_id }}" style="display: none;">
-                                    <td colspan="10">
+                                    <td colspan="9">
                                         <div class="ms-5 mb-3">
                                             <table class="table table-sm table-bordered">
                                                 <thead class="table-light">
