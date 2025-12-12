@@ -2080,14 +2080,6 @@ function resetCustomerPackages() {
         setSelectValue(serviceSelect, sId);
       }
 
-      if (staffSelect && stId !== null) {
-        if (window.jQuery && jQuery.fn && jQuery.fn.select2 && jQuery(staffSelect).hasClass('select2-hidden-accessible')) {
-          jQuery(staffSelect).val(String(stId)).trigger('change');
-        } else {
-          staffSelect.value = String(stId);
-        }
-      }
-
       // Mark as added
       addedAppointmentIds.add(aId);
       if (removeBtn) removeBtn.style.display = 'block';
@@ -2101,12 +2093,28 @@ function resetCustomerPackages() {
         hiddenPriceInput.value = (price ?? 0).toFixed(2);
       }
 
-      // Defer calculations until Select2/value updates have flushed
+      // Defer staff assignment and calculations until Select2/value updates have flushed
       requestAnimationFrame(() => {
         if (serviceSelect) {
           // Keep handleServiceChange minimal: it should just set row data; real math happens in updateCalculations()
           handleServiceChange(serviceSelect);
         }
+        
+        // Set staff AFTER service change has processed to avoid timing issues
+        if (staffSelect && stId !== null) {
+          console.log('🧑‍💼 Setting staff ID:', stId, 'for staff select:', staffSelect);
+          if (window.jQuery && jQuery.fn && jQuery.fn.select2 && jQuery(staffSelect).hasClass('select2-hidden-accessible')) {
+            jQuery(staffSelect).val(String(stId)).trigger('change');
+            console.log('✅ Staff set via Select2');
+          } else {
+            staffSelect.value = String(stId);
+            staffSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            console.log('✅ Staff set via native select');
+          }
+        } else {
+          console.log('⚠️ Staff not set - staffSelect:', !!staffSelect, 'stId:', stId);
+        }
+        
         updateCalculations();
       });
 
