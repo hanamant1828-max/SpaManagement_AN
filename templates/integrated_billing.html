@@ -1950,9 +1950,16 @@ function resetCustomerAppointments() {
 
             const isAdded = addedAppointmentIds.has(apt.id);
 
-            // Safely escape service and staff names
-            const serviceName = (apt.service_name || 'Service not specified').replace(/'/g, "\\'").replace(/"/g, '\\"');
-            const staffName = (apt.staff_name || 'Not assigned').replace(/'/g, "\\'").replace(/"/g, '\\"');
+            // Store appointment data as JSON in data attribute
+            // JSON.stringify handles escaping automatically - no manual escaping needed
+            const aptData = JSON.stringify({
+                id: apt.id,
+                serviceName: apt.service_name || 'Service not specified',
+                serviceId: apt.service_id || null,
+                staffId: apt.staff_id || null,
+                servicePrice: apt.service_price || 0,
+                serviceDuration: apt.service_duration || 60
+            });
 
             html += `
                 <tr style="border-bottom: 1px solid var(--spa-gray-200); ${isAdded ? 'background: #f0f0f0;' : ''}">
@@ -1971,8 +1978,8 @@ function resetCustomerAppointments() {
                     </td>
                     <td style="padding: 8px;">
                         <button type="button"
-                                class="btn btn-sm ${isAdded ? 'btn-success' : 'btn-primary'} w-100"
-                                onclick="addAppointmentToBill(${apt.id}, '${serviceName}', ${apt.service_id || 'null'}, ${apt.staff_id || 'null'}, ${apt.service_price || 0}, ${apt.service_duration || 60})"
+                                class="btn btn-sm add-appointment-btn ${isAdded ? 'btn-success' : 'btn-primary'} w-100"
+                                data-appointment='${aptData.replace(/'/g, "&#39;")}'
                                 ${isAdded ? 'disabled' : ''}
                                 style="font-size: 0.75rem; padding: 4px 8px;">
                             ${isAdded ? '<i class="fas fa-check"></i> Added' : '<i class="fas fa-plus"></i> Add'}
@@ -1987,6 +1994,26 @@ function resetCustomerAppointments() {
             </div>`;
 
         appointmentsDiv.innerHTML = html;
+        
+        // Attach click handlers to the add appointment buttons
+        appointmentsDiv.querySelectorAll('.add-appointment-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const aptDataStr = this.getAttribute('data-appointment');
+                try {
+                    const aptData = JSON.parse(aptDataStr);
+                    addAppointmentToBill(
+                        aptData.id,
+                        aptData.serviceName,
+                        aptData.serviceId,
+                        aptData.staffId,
+                        aptData.servicePrice,
+                        aptData.serviceDuration
+                    );
+                } catch (e) {
+                    console.error('Error parsing appointment data:', e);
+                }
+            });
+        });
     }
 
 function resetCustomerPackages() {
@@ -1998,27 +2025,28 @@ function resetCustomerPackages() {
 
 
     function addAppointmentToBill(appointmentId, serviceName, serviceId, staffId, servicePrice, serviceDuration) {
-      console.log('🎯 addAppointmentToBill called with ID:', appointmentId);
+      console.log('🎯 addAppointmentToBill called with:', {
+          appointmentId,
+          serviceName,
+          serviceId,
+          staffId,
+          servicePrice,
+          serviceDuration
+      });
 
-      // Find the appointment object (assuming customerAppointments is available globally or passed)
-      // For now, we'll use a placeholder as customerAppointments is not directly accessible here.
-      // In a real scenario, you'd need to fetch or have access to this data.
-      // Let's mock it for demonstration:
+      // Build appointment data from the passed parameters
       const mockAppointment = {
           id: appointmentId,
           service_id: serviceId,
           staff_id: staffId,
-          service_name: serviceName, // This should ideally be fetched from the actual appointment data
+          service_name: serviceName,
           service_price: servicePrice,
           service_duration: serviceDuration
       };
 
       if (!mockAppointment.service_id) {
           console.warn('⚠️ Service ID not provided for appointment, using generic service row.');
-          // You might want to handle this case differently, e.g., show an error or allow manual selection.
       }
-
-      console.log('✅ Found appointment data (mocked/passed):', mockAppointment);
 
       const container = document.getElementById('servicesContainer');
       if (!container) {
@@ -2093,30 +2121,46 @@ function resetCustomerPackages() {
         hiddenPriceInput.value = (price ?? 0).toFixed(2);
       }
 
-      // Defer staff assignment and calculations until Select2/value updates have flushed
-      requestAnimationFrame(() => {
+      // Helper function to set staff value with proper Select2 handling
+      const setStaffValue = (staffEl, staffIdVal) => {
+        if (!staffEl || staffIdVal === null || staffIdVal === undefined) {
+          console.log('⚠️ Cannot set staff - element:', !!staffEl, 'staffId:', staffIdVal);
+          return false;
+        }
+        
+        const staffIdStr = String(staffIdVal);
+        console.log('🧑‍💼 Setting staff ID:', staffIdStr);
+        
+        // Check if the option exists in the dropdown
+        const optionExists = Array.from(staffEl.options).some(opt => opt.value === staffIdStr);
+        if (!optionExists) {
+          console.warn('⚠️ Staff option not found in dropdown for ID:', staffIdStr);
+          return false;
+        }
+        
+        if (window.jQuery && jQuery.fn.select2 && jQuery(staffEl).hasClass('select2-hidden-accessible')) {
+          jQuery(staffEl).val(staffIdStr).trigger('change');
+          console.log('✅ Staff set via Select2:', staffIdStr);
+        } else {
+          staffEl.value = staffIdStr;
+          staffEl.dispatchEvent(new Event('change', { bubbles: true }));
+          console.log('✅ Staff set via native select:', staffIdStr);
+        }
+        return true;
+      };
+
+      // Defer staff assignment and calculations with proper timing
+      // Use setTimeout to ensure DOM updates and Select2 initialization complete
+      setTimeout(() => {
         if (serviceSelect) {
-          // Keep handleServiceChange minimal: it should just set row data; real math happens in updateCalculations()
           handleServiceChange(serviceSelect);
         }
         
-        // Set staff AFTER service change has processed to avoid timing issues
-        if (staffSelect && stId !== null) {
-          console.log('🧑‍💼 Setting staff ID:', stId, 'for staff select:', staffSelect);
-          if (window.jQuery && jQuery.fn && jQuery.fn.select2 && jQuery(staffSelect).hasClass('select2-hidden-accessible')) {
-            jQuery(staffSelect).val(String(stId)).trigger('change');
-            console.log('✅ Staff set via Select2');
-          } else {
-            staffSelect.value = String(stId);
-            staffSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            console.log('✅ Staff set via native select');
-          }
-        } else {
-          console.log('⚠️ Staff not set - staffSelect:', !!staffSelect, 'stId:', stId);
-        }
+        // Set staff after service change has processed
+        setStaffValue(staffSelect, stId);
         
         updateCalculations();
-      });
+      }, 50);
 
       // Refresh appointments display to show "Added" state (non-blocking)
       const clientId = document.getElementById('client_id')?.value;
