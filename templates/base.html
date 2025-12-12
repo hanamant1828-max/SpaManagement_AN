@@ -20,11 +20,82 @@
     <!-- SweetAlert2 for beautiful confirmation dialogs -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Custom CSS -->
-    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <!-- Custom CSS with cache bust -->
+    <link href="{{ url_for('static', filename='css/style.css') }}?v=3" rel="stylesheet">
 
     {% block extra_head %}{% endblock %}
     {% block extra_css %}{% endblock %}
+    
+    <!-- Fix for sidebar header overlap on desktop -->
+    <style>
+        /* Ensure navbar has solid background and is always on top */
+        .modern-navbar {
+            z-index: 9999 !important;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+        }
+        
+        .modern-navbar .navbar-brand {
+            z-index: 10000 !important;
+            position: relative !important;
+        }
+        
+        .modern-navbar .brand-text {
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            background: transparent !important;
+        }
+        
+        @media (min-width: 992px) {
+            /* Hide sidebar header on desktop */
+            #sidebar-header-mobile,
+            .modern-sidebar .sidebar-header,
+            .modern-sidebar .offcanvas-header,
+            #sidebar .offcanvas-header,
+            #sidebar .sidebar-brand,
+            #sidebar .brand-title,
+            #sidebar .brand-subtitle,
+            #sidebar .brand-logo,
+            #sidebar .brand-info {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                overflow: hidden !important;
+                opacity: 0 !important;
+                position: absolute !important;
+                left: -9999px !important;
+            }
+            
+            /* Ensure sidebar starts below navbar */
+            .modern-sidebar,
+            #sidebar {
+                top: 56px !important;
+                z-index: 1000 !important;
+            }
+        }
+    </style>
+    <script>
+        // Hide sidebar header on desktop
+        document.addEventListener('DOMContentLoaded', function() {
+            function hideSidebarHeader() {
+                if (window.innerWidth >= 992) {
+                    var sidebarHeader = document.getElementById('sidebar-header-mobile');
+                    if (sidebarHeader) {
+                        sidebarHeader.style.display = 'none';
+                        sidebarHeader.style.visibility = 'hidden';
+                        sidebarHeader.style.height = '0';
+                    }
+                }
+            }
+            hideSidebarHeader();
+            window.addEventListener('resize', hideSidebarHeader);
+        });
+    </script>
 </head>
 <body class="{% block body_class %}{% endblock %}">
     <!-- Top Navigation Bar -->
@@ -38,7 +109,7 @@
                 <a class="navbar-brand d-flex align-items-center" href="{{ url_for('dashboard') }}">
                     <div class="brand-icon-wrapper me-2">
                         {% if business_logo %}
-                        <img src="{{ business_logo }}" alt="{{ business_name }}" class="brand-logo-img" style="height: 32px; width: auto; object-fit: contain;">
+                        <img src="{{ business_logo }}" alt="" class="brand-logo-img" style="height: 32px; width: auto; object-fit: contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-spa\'></i>';">
                         {% else %}
                         <i class="fas fa-spa"></i>
                         {% endif %}
@@ -76,11 +147,12 @@
 
     <!-- Modern Vertical Sidebar -->
     <div class="offcanvas offcanvas-lg offcanvas-start modern-sidebar" tabindex="-1" id="sidebar">
-        <div class="offcanvas-header sidebar-header">
+        <!-- Sidebar header only visible on mobile (hidden by CSS on lg+) -->
+        <div class="offcanvas-header sidebar-header d-lg-none" id="sidebar-header-mobile">
             <div class="sidebar-brand">
                 <div class="brand-logo">
                     {% if business_logo %}
-                    <img src="{{ business_logo }}" alt="{{ business_name }}" class="sidebar-logo-img" style="height: 40px; width: auto; object-fit: contain;">
+                    <img src="{{ business_logo }}" alt="" class="sidebar-logo-img" style="height: 40px; width: auto; object-fit: contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-spa\'></i>';">
                     {% else %}
                     <i class="fas fa-spa"></i>
                     {% endif %}
@@ -90,7 +162,7 @@
                     <small class="brand-subtitle">Management Portal</small>
                 </div>
             </div>
-            <button type="button" class="btn-close btn-close-white d-lg-none" data-bs-dismiss="offcanvas"></button>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
         </div>
         <div class="offcanvas-body sidebar-body">
             <nav class="sidebar-nav">

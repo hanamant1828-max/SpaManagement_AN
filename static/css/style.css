@@ -599,6 +599,21 @@ button[type="submit"],
     font-size: 1.15rem;
     letter-spacing: -0.02em;
     color: #ffffff !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative;
+    z-index: 10;
+}
+
+.modern-navbar .navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    position: relative;
+    z-index: 10;
 }
 
 .user-dropdown {
@@ -682,6 +697,10 @@ button[type="submit"],
         visibility: visible !important;
         opacity: 1 !important;
     }
+    
+    .modern-sidebar .sidebar-header {
+        display: none !important;
+    }
 }
 
 .sidebar-header {
@@ -723,6 +742,10 @@ button[type="submit"],
     font-weight: 700;
     margin: 0;
     letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
 }
 
 .brand-subtitle {

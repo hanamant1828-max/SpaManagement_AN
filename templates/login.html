@@ -10,7 +10,7 @@
                 <div class="card-body p-5">
                     <div class="text-center mb-4">
                         {% if business_logo %}
-                        <img src="{{ business_logo }}" alt="{{ business_name }}" class="mb-3" style="height: 64px; width: auto; object-fit: contain;">
+                        <img src="{{ business_logo }}" alt="" class="mb-3" style="height: 64px; width: auto; object-fit: contain;" onerror="this.style.display='none'; this.insertAdjacentHTML('afterend', '<i class=\'fas fa-spa fa-3x text-primary mb-3\'></i>');">
                         {% else %}
                         <i class="fas fa-spa fa-3x text-primary mb-3"></i>
                         {% endif %}
