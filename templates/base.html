@@ -37,9 +37,13 @@
                 </button>
                 <a class="navbar-brand d-flex align-items-center" href="{{ url_for('dashboard') }}">
                     <div class="brand-icon-wrapper me-2">
+                        {% if business_logo %}
+                        <img src="{{ business_logo }}" alt="{{ business_name }}" class="brand-logo-img" style="height: 32px; width: auto; object-fit: contain;">
+                        {% else %}
                         <i class="fas fa-spa"></i>
+                        {% endif %}
                     </div>
-                    <span class="brand-text d-none d-sm-inline">Spa & Salon Suite</span>
+                    <span class="brand-text d-none d-sm-inline">{{ business_name }}</span>
                 </a>
             </div>
 
@@ -75,10 +79,14 @@
         <div class="offcanvas-header sidebar-header">
             <div class="sidebar-brand">
                 <div class="brand-logo">
+                    {% if business_logo %}
+                    <img src="{{ business_logo }}" alt="{{ business_name }}" class="sidebar-logo-img" style="height: 40px; width: auto; object-fit: contain;">
+                    {% else %}
                     <i class="fas fa-spa"></i>
+                    {% endif %}
                 </div>
                 <div class="brand-info">
-                    <h5 class="brand-title">Spa Suite</h5>
+                    <h5 class="brand-title">{{ business_name }}</h5>
                     <small class="brand-subtitle">Management Portal</small>
                 </div>
             </div>

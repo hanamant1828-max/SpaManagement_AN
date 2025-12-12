@@ -386,6 +386,24 @@ def utility_processor():
         permission_name = f"{module}_{action}"
         return current_user.has_permission(permission_name)
 
+    def get_business_logo():
+        """Get business logo from system settings"""
+        try:
+            from models import SystemSetting
+            setting = SystemSetting.query.filter_by(key='business_logo').first()
+            return setting.value if setting and setting.value else None
+        except:
+            return None
+
+    def get_business_name():
+        """Get business name from system settings"""
+        try:
+            from models import SystemSetting
+            setting = SystemSetting.query.filter_by(key='business_name').first()
+            return setting.value if setting and setting.value else 'Spa & Salon Suite'
+        except:
+            return 'Spa & Salon Suite'
+
     return dict(
         utils=dict(
             get_month_name=get_month_name,
@@ -396,7 +414,9 @@ def utility_processor():
             calculate_age=calculate_age,
             get_status_badge_class=get_status_badge_class
         ),
-        check_permission=check_permission
+        check_permission=check_permission,
+        business_logo=get_business_logo(),
+        business_name=get_business_name()
     )
 
 # Add root route

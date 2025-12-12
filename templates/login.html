@@ -9,8 +9,12 @@
             <div class="card shadow-lg mt-5">
                 <div class="card-body p-5">
                     <div class="text-center mb-4">
+                        {% if business_logo %}
+                        <img src="{{ business_logo }}" alt="{{ business_name }}" class="mb-3" style="height: 64px; width: auto; object-fit: contain;">
+                        {% else %}
                         <i class="fas fa-spa fa-3x text-primary mb-3"></i>
-                        <h2 class="card-title">Spa & Salon Suite</h2>
+                        {% endif %}
+                        <h2 class="card-title">{{ business_name }}</h2>
                         <p class="text-muted">Please sign in to continue</p>
                     </div>
 
