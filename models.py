@@ -1225,6 +1225,14 @@ class InvoiceItem(db.Model):
     is_subscription_deduction = db.Column(db.Boolean, default=False)
     is_extra_charge = db.Column(db.Boolean, default=False)
 
+    # Package benefit details - CRITICAL for displaying package info when viewing/editing invoice
+    package_benefit_id = db.Column(db.Integer, nullable=True)  # ID of PackageBenefitTracker used
+    package_assignment_id = db.Column(db.Integer, nullable=True)  # ID of ServicePackageAssignment
+    package_name = db.Column(db.String(200), nullable=True)  # Name of package for display
+    package_type = db.Column(db.String(50), nullable=True)  # e.g., 'service_package', 'student_offer', 'membership'
+    benefit_type = db.Column(db.String(50), nullable=True)  # e.g., 'free', 'discount', 'prepaid', 'unlimited'
+    benefit_description = db.Column(db.String(500), nullable=True)  # Human-readable description of benefit applied
+
     # Staff tracking - who performed the service/sold the product (no FK constraint)
     # Explicitly specify that this is NOT a foreign key - just storing the ID value
     staff_id = db.Column(db.Integer, nullable=True, info={'foreign_key': False})
