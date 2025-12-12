@@ -370,13 +370,22 @@
         <div class="invoice-header">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <div class="company-name">{{ gst_config.business_name or 'Spa & Wellness' }}</div>
-                    <div class="company-details">
-                        {{ gst_config.business_address or 'Your Business Address' }}<br>
-                        Phone: {{ gst_config.business_phone or '+91-XXXXXXXXXX' }} | Email: {{ gst_config.business_email or 'info@yourspa.com' }}
-                    </div>
-                    <div class="gstin-badge">
-                        <strong>GSTIN:</strong> {{ gst_config.gstin_number or '29XXXXX1234Z1Z5' }}
+                    <div class="d-flex align-items-start gap-3">
+                        {% if business_logo %}
+                        <div class="company-logo">
+                            <img src="{{ business_logo }}" alt="{{ gst_config.business_name or 'Company Logo' }}" style="max-height: 80px; max-width: 100px; object-fit: contain; border-radius: 8px;">
+                        </div>
+                        {% endif %}
+                        <div>
+                            <div class="company-name">{{ gst_config.business_name or 'Spa & Wellness' }}</div>
+                            <div class="company-details">
+                                {{ gst_config.business_address or 'Your Business Address' }}<br>
+                                Phone: {{ gst_config.business_phone or '+91-XXXXXXXXXX' }} | Email: {{ gst_config.business_email or 'info@yourspa.com' }}
+                            </div>
+                            <div class="gstin-badge">
+                                <strong>GSTIN:</strong> {{ gst_config.gstin_number or '29XXXXX1234Z1Z5' }}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-6 text-end">
