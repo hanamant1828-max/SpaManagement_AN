@@ -34,7 +34,7 @@ The application uses Flask and SQLAlchemy, following a modular design with featu
 - **Face Recognition System:** InsightFace-based biometric authentication for customer registration and check-in, supporting webcam capture and CPU-based ONNXRuntime inference.
 - **User Management System:** Administrative interface for managing users, roles, and permissions, including CRUD operations, access control matrix, and multi-layered authorization.
 - **Package Management:** Implements type-specific billing methods for various package types.
-- **Billing-Package Integration:** API for real-time package benefit verification and bidirectional data synchronization.
+- **Billing-Package Integration:** API for real-time package benefit verification and bidirectional data synchronization. Invoice items now store complete package benefit metadata (package_name, package_type, benefit_type, benefit_description) for persistent tracking and display.
 - **Automatic Database Migrations:** Ensures database schema is up-to-date on startup.
 - **Session Management:** Utilizes Flask's session management.
 - **Timezone Management:** Comprehensive IST timezone utilities using `pytz` for timestamps.
