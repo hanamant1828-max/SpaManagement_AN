@@ -435,13 +435,15 @@
                 <thead>
                     <tr>
                         <th style="width: 5%;">S.No</th>
-                        <th style="width: 30%;">Description</th>
-                        <th style="width: 10%;">HSN/SAC</th>
-                        <th style="width: 8%;">Qty</th>
-                        <th style="width: 12%;">Rate (₹)</th>
-                        <th style="width: 12%;">Amount (₹)</th>
-                        <th style="width: 10%;">Tax Rate</th>
-                        <th style="width: 13%;">Tax Amt (₹)</th>
+                        <th style="width: 25%;">Description</th>
+                        <th style="width: 8%;">HSN/SAC</th>
+                        <th style="width: 6%;">Qty</th>
+                        <th style="width: 10%;">Rate (₹)</th>
+                        <th style="width: 10%;">Original (₹)</th>
+                        <th style="width: 10%;">Discount (₹)</th>
+                        <th style="width: 10%;">Final (₹)</th>
+                        <th style="width: 8%;">Tax Rate</th>
+                        <th style="width: 8%;">Tax (₹)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -452,12 +454,31 @@
                             <strong>{{ item.item_name }}</strong>
                             {% if item.description %}<div class="item-description">{{ item.description }}</div>{% endif %}
                             {% if item.batch_name %}<div class="item-description">Batch: {{ item.batch_name }}</div>{% endif %}
+                            {% if item.is_package_deduction and item.package_name %}
+                            <div class="item-description" style="color: #28a745; font-weight: 500;">
+                                <span style="background: #e8f5e9; padding: 2px 6px; border-radius: 3px;">
+                                    📦 {{ item.package_name }}
+                                    {% if item.benefit_type %} ({{ item.benefit_type }}){% endif %}
+                                </span>
+                            </div>
+                            {% if item.benefit_description %}
+                            <div class="item-description" style="color: #666; font-size: 0.7rem;">{{ item.benefit_description }}</div>
+                            {% endif %}
+                            {% endif %}
                         </td>
                         <td class="text-center">{% if item.item_type == 'service' %}998314{% else %}3304{% endif %}</td>
                         <td class="text-center">{{ item.quantity }}</td>
                         <td class="text-end">{{ "%.2f"|format(item.unit_price) }}</td>
-                        <td class="text-end">{{ "%.2f"|format(item.final_amount) }}</td>
-                        <td class="text-center">
+                        <td class="text-end">{{ "%.2f"|format(item.original_amount or (item.quantity * item.unit_price)) }}</td>
+                        <td class="text-end" style="color: {% if item.deduction_amount and item.deduction_amount > 0 %}#28a745{% else %}#999{% endif %};">
+                            {% if item.deduction_amount and item.deduction_amount > 0 %}
+                                -{{ "%.2f"|format(item.deduction_amount) }}
+                            {% else %}
+                                0.00
+                            {% endif %}
+                        </td>
+                        <td class="text-end"><strong>{{ "%.2f"|format(item.final_amount) }}</strong></td>
+                        <td class="text-center" style="font-size: 0.75rem;">
                             {% if tax_details.get('is_interstate') %}
                                 {{ "%.1f"|format(tax_details.get('igst_rate', 0)) }}% IGST
                             {% else %}
@@ -473,6 +494,49 @@
                     {% endfor %}
                 </tbody>
             </table>
+
+            <!-- Package Benefits Summary (if any package deductions applied) -->
+            {% set package_items = invoice_items | selectattr('is_package_deduction') | list %}
+            {% if package_items %}
+            <div style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border: 1px solid #81c784; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                <h6 style="color: #2e7d32; font-weight: 600; margin-bottom: 12px; font-size: 0.95rem;">
+                    📦 Package Benefits Applied
+                </h6>
+                <table style="width: 100%; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #81c784;">
+                            <th style="text-align: left; padding: 6px; color: #2e7d32;">Package</th>
+                            <th style="text-align: left; padding: 6px; color: #2e7d32;">Service/Item</th>
+                            <th style="text-align: left; padding: 6px; color: #2e7d32;">Benefit Type</th>
+                            <th style="text-align: right; padding: 6px; color: #2e7d32;">Original</th>
+                            <th style="text-align: right; padding: 6px; color: #2e7d32;">Savings</th>
+                            <th style="text-align: right; padding: 6px; color: #2e7d32;">You Pay</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set total_package_savings = namespace(value=0) %}
+                        {% for item in package_items %}
+                        {% set total_package_savings.value = total_package_savings.value + (item.deduction_amount or 0) %}
+                        <tr>
+                            <td style="padding: 6px; color: #333;">{{ item.package_name or 'Package' }}</td>
+                            <td style="padding: 6px; color: #333;">{{ item.item_name }}</td>
+                            <td style="padding: 6px; color: #666;">{{ item.benefit_type or 'Included' }}</td>
+                            <td style="padding: 6px; text-align: right; color: #666;">₹{{ "%.2f"|format(item.original_amount or (item.quantity * item.unit_price)) }}</td>
+                            <td style="padding: 6px; text-align: right; color: #28a745; font-weight: 600;">-₹{{ "%.2f"|format(item.deduction_amount or 0) }}</td>
+                            <td style="padding: 6px; text-align: right; color: #333; font-weight: 600;">₹{{ "%.2f"|format(item.final_amount) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="border-top: 2px solid #81c784; background: #a5d6a7;">
+                            <td colspan="4" style="padding: 8px; text-align: right; font-weight: 700; color: #1b5e20;">Total Package Savings:</td>
+                            <td style="padding: 8px; text-align: right; font-weight: 700; color: #1b5e20; font-size: 1rem;">-₹{{ "%.2f"|format(total_package_savings.value) }}</td>
+                            <td style="padding: 8px;"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% endif %}
 
             <!-- Summary Section -->
             <div class="summary-section">
@@ -501,12 +565,24 @@
                 <div class="totals-box">
                     <table class="totals-table">
                         <tr>
-                            <td>Subtotal:</td>
+                            <td>Subtotal (Original):</td>
                             <td>₹{{ "%.2f"|format(invoice.gross_subtotal) }}</td>
                         </tr>
+                        {% set total_package_discount = namespace(value=0) %}
+                        {% for item in invoice_items %}
+                            {% if item.is_package_deduction and item.deduction_amount %}
+                                {% set total_package_discount.value = total_package_discount.value + item.deduction_amount %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if total_package_discount.value > 0 %}
+                        <tr>
+                            <td style="color: #28a745;">Package Savings:</td>
+                            <td style="color: #28a745; font-weight: 600;">- ₹{{ "%.2f"|format(total_package_discount.value) }}</td>
+                        </tr>
+                        {% endif %}
                         {% if invoice.discount_amount > 0 %}
                         <tr>
-                            <td>Discount:</td>
+                            <td>Additional Discount:</td>
                             <td style="color: #dc3545;">- ₹{{ "%.2f"|format(invoice.discount_amount) }}</td>
                         </tr>
                         {% endif %}
