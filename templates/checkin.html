@@ -800,6 +800,17 @@
                             <button type="button" class="btn-checkin-customer" id="checkInCustomerBtn" onclick="checkInRecognizedCustomer()" style="display: none;">
                                 <i class="fas fa-check-circle me-2"></i>Check In Customer
                             </button>
+                            <div id="postCheckinActions" style="display: none; margin-top: 1rem;">
+                                <a href="#" id="goToBillingBtn" class="btn-billing" style="margin-bottom: 0.75rem;">
+                                    <i class="fas fa-file-invoice-dollar me-2"></i>Go to Billing
+                                </a>
+                                <a href="#" id="goToCalendarBtn" class="btn-billing" style="margin-bottom: 0.75rem;">
+                                    <i class="fas fa-calendar-alt me-2"></i>View in Calendar
+                                </a>
+                                <button type="button" class="btn-billing" onclick="resetForNewCustomer()" style="background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2);">
+                                    <i class="fas fa-redo me-2"></i>Scan Another Customer
+                                </button>
+                            </div>
                         </div>
 
                         <div class="last-recognition">
@@ -1305,6 +1316,9 @@ function showCustomerInfo(customer, todaysAppointments) {
     const customerVisits = document.getElementById('customerVisits');
     const customerStatus = document.getElementById('customerStatus');
     const checkInBtn = document.getElementById('checkInCustomerBtn');
+    const postCheckinActions = document.getElementById('postCheckinActions');
+    const goToBillingBtn = document.getElementById('goToBillingBtn');
+    const goToCalendarBtn = document.getElementById('goToCalendarBtn');
 
     if (!customerCard) return;
 
@@ -1321,6 +1335,19 @@ function showCustomerInfo(customer, todaysAppointments) {
     // Show check-in button
     if (checkInBtn) {
         checkInBtn.style.display = 'block';
+    }
+    
+    // Set up navigation links
+    if (goToBillingBtn) {
+        goToBillingBtn.href = `/integrated_billing?client_id=${customer.id}`;
+    }
+    if (goToCalendarBtn) {
+        goToCalendarBtn.href = `/unaki_booking?client_id=${customer.id}`;
+    }
+    
+    // Show post check-in actions immediately after recognition (for quick access)
+    if (postCheckinActions) {
+        postCheckinActions.style.display = 'block';
     }
     
     // Update the appointments table with today's appointments for this customer
@@ -1385,7 +1412,35 @@ function hideCustomerInfo() {
     if (customerCard) {
         customerCard.classList.remove('visible');
     }
+    
+    const postCheckinActions = document.getElementById('postCheckinActions');
+    if (postCheckinActions) {
+        postCheckinActions.style.display = 'none';
+    }
+    
+    const checkInBtn = document.getElementById('checkInCustomerBtn');
+    if (checkInBtn) {
+        checkInBtn.style.display = 'none';
+        checkInBtn.disabled = false;
+        checkInBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Check In Customer';
+        checkInBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+    }
+    
     recognizedCustomerId = null;
+}
+
+function resetForNewCustomer() {
+    // Stop any ongoing recognition
+    stopRecognition();
+    
+    // Hide customer info
+    hideCustomerInfo();
+    
+    // Reset status
+    updateStatus('ready', 'Ready for Check-In', 'Click "Start Recognition" and position your face in the circle for automatic check-in.');
+    
+    // Clear appointments table back to original
+    location.reload();
 }
 
 function showErrorMessage(message) {
@@ -1573,22 +1628,39 @@ async function checkInRecognizedCustomer() {
 
         if (data.success) {
             const customerName = data.client_name || data.customer_name || 'Customer';
-            updateStatus('success', 'Check-In Successful!', `${customerName} checked in for ${data.checked_in_count} appointment(s).`);
+            updateStatus('success', 'Check-In Successful!', `${customerName} checked in for ${data.checked_in_count} appointment(s). Use the buttons below to proceed.`);
+            
+            // Update check-in button to show completed state
+            if (checkInBtn) {
+                checkInBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Checked In';
+                checkInBtn.disabled = true;
+                checkInBtn.style.background = 'linear-gradient(135deg, #6ee7b7 0%, #34d399 100%)';
+            }
+            
+            // Highlight the appointments in the table as checked-in
+            const appointmentRows = document.querySelectorAll('#appointmentsTable tr[data-client-id="' + recognizedCustomerId + '"]');
+            appointmentRows.forEach(row => {
+                row.style.background = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
+                const statusCell = row.querySelector('td:nth-child(5)');
+                if (statusCell) {
+                    statusCell.innerHTML = '<span class="badge bg-warning text-dark">Checked In</span>';
+                }
+                const actionCell = row.querySelector('td:nth-child(6)');
+                if (actionCell) {
+                    actionCell.innerHTML = '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Done</span>';
+                }
+            });
             
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     icon: 'success',
                     title: 'Check-In Successful!',
-                    html: `<strong>${customerName}</strong> has been checked in for <strong>${data.checked_in_count}</strong> appointment(s).`,
-                    timer: 2000,
+                    html: `<strong>${customerName}</strong> has been checked in for <strong>${data.checked_in_count}</strong> appointment(s).<br><br><small>You can now proceed to Billing or view in Calendar.</small>`,
+                    timer: 3000,
                     confirmButtonColor: '#10b981',
-                    showConfirmButton: false
-                }).then(() => {
-                    location.reload();
+                    showConfirmButton: true,
+                    confirmButtonText: 'Continue'
                 });
-            } else {
-                alert(`Check-In Successful! ${customerName} checked in for ${data.checked_in_count} appointment(s).`);
-                location.reload();
             }
         } else {
             if (typeof Swal !== 'undefined') {
