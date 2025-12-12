@@ -2124,6 +2124,10 @@ def integrated_invoice_detail(invoice_id):
 
         gst_config = GSTConfig()
 
+        # Get business logo
+        business_logo_setting = SystemSetting.query.filter_by(key='business_logo').first()
+        business_logo = business_logo_setting.value if business_logo_setting else None
+
         # Check if print mode
         print_mode = request.args.get('print') == 'true'
         # Use print template if in print mode
@@ -2135,6 +2139,7 @@ def integrated_invoice_detail(invoice_id):
                              tax_details=tax_details,
                              customer=customer,
                              gst_config=gst_config,
+                             business_logo=business_logo,
                              total_amount_words=number_to_words)
 
     except Exception as e:
@@ -2404,7 +2409,12 @@ def print_professional_invoice(invoice_id):
 
     # Get GST business information from database
     from modules.settings.settings_queries import get_gst_settings
+    from models import SystemSetting
     gst_config = get_gst_settings()
+
+    # Get business logo
+    business_logo_setting = SystemSetting.query.filter_by(key='business_logo').first()
+    business_logo = business_logo_setting.value if business_logo_setting else None
 
     # Render HTML template with dynamic GST information
     html_string = render_template('professional_invoice_print.html',
@@ -2413,6 +2423,7 @@ def print_professional_invoice(invoice_id):
                                  tax_details=tax_details,
                                  staff_names=staff_names,
                                  gst_config=gst_config,
+                                 business_logo=business_logo,
                                  total_amount_words=number_to_words)
 
     try:

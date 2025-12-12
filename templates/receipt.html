@@ -68,7 +68,10 @@
 <body>
     <div class="receipt-container">
         <div class="receipt-header">
-            <div class="receipt-logo">🪷 Spa & Salon Suite</div>
+            {% if business_logo %}
+            <img src="{{ business_logo }}" alt="{{ business_name or 'Spa & Salon Suite' }}" style="height: 60px; width: auto; object-fit: contain; margin-bottom: 10px;">
+            {% endif %}
+            <div class="receipt-logo">{{ business_name or 'Spa & Salon Suite' }}</div>
             <div class="receipt-title">PAYMENT RECEIPT</div>
             <div><strong>Receipt No:</strong> {{ receipt.receipt_number }}</div>
             <div><strong>Date:</strong> {{ receipt.created_at.strftime('%d-%b-%Y %I:%M %p') }}</div>

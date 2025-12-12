@@ -69,8 +69,9 @@
                     <p class="mb-0"><strong>GSTIN:</strong> {{ gst_config.gstin_number or '29XXXXX1234Z1Z5' }}</p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <!-- Company logo placeholder -->
-                    <img src="/static/images/company-logo.png" alt="Company Logo" class="company-logo" onerror="this.style.display='none'">
+                    {% if business_logo %}
+                    <img src="{{ business_logo }}" alt="{{ gst_config.business_name or 'Company Logo' }}" class="company-logo">
+                    {% endif %}
                 </div>
             </div>
         </div>

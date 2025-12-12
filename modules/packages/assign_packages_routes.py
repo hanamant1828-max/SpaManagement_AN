@@ -501,12 +501,21 @@ def view_receipt(receipt_id):
                 app.logger.error(f"Error getting package template for assignment {assignment.id}: {e}")
                 package = None
         
+        # Get business logo and name
+        from models import SystemSetting
+        business_logo_setting = SystemSetting.query.filter_by(key='business_logo').first()
+        business_name_setting = SystemSetting.query.filter_by(key='business_name').first()
+        business_logo = business_logo_setting.value if business_logo_setting else None
+        business_name = business_name_setting.value if business_name_setting else 'Spa & Salon Suite'
+
         return render_template('receipt.html',
                              receipt=receipt,
                              customer=customer,
                              assignment=assignment,
                              package=package,
-                             issuer=receipt.issuer)
+                             issuer=receipt.issuer,
+                             business_logo=business_logo,
+                             business_name=business_name)
     except Exception as e:
         app.logger.error(f"Error viewing receipt {receipt_id}: {e}")
         import traceback
