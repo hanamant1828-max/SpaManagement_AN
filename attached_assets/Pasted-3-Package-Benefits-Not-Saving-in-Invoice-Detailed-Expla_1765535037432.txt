@@ -1,0 +1,103 @@
+3. Package Benefits Not Saving in Invoice (Detailed Explanation)
+Problem Summary:
+
+When creating an invoice in the Billing screen, the user selects a customer who has an active package (e.g., 3+1 Facial or Prepaid Package). The package benefit is correctly applied and visible in the Bill Summary — for example, showing a deduction under Package Benefits or Service Sessions Used.
+
+However, when the invoice is saved using Save or Save & Print, the system does not persist this package-related data.
+Later, when reopening the same invoice from All Invoices → Edit/View, the invoice loads without any package benefit information. The Package Benefits line is missing, and the system behaves as if no package was used.
+
+Steps to Reproduce:
+
+Go to Billing.
+
+Select a Customer who has an Active Package.
+
+Add a service that is part of the package (e.g., Facial under 3+1 Package).
+
+Observe that the Package Benefits section in the Bill Summary correctly shows a deduction or session usage.
+
+Click Save or Save & Print to generate the invoice.
+
+Go to All Invoices → Edit/View the same invoice.
+
+Notice that the Package Benefits section is missing, and no package details are displayed.
+
+Root Cause (Likely Areas to Check):
+
+Frontend Issue:
+
+The package-related data (like package_id, benefit_amount, or session_used) may not be included in the invoice save payload sent to the backend API.
+
+Check the object sent to /create-invoice or /save-invoice endpoint and confirm if package data is being passed.
+
+Backend Issue:
+
+The backend API might not be handling or storing the package details properly in the Invoice and InvoiceDetails tables.
+
+The invoice fetch API (used in View/Edit) might be missing a JOIN or mapping with the PackageBenefits or CustomerPackage tables.
+
+As a result, when fetching invoice details, package-related data is never returned.
+
+Database Mapping:
+
+Verify if the invoice schema includes fields for storing package_id, package_type, benefit_amount, or session_used.
+
+If missing, new columns or relations might be needed.
+
+Expected Behavior:
+
+When an invoice is created using a package, all package-related details must be:
+
+Saved in the backend along with the invoice.
+
+Returned properly in the invoice fetch API (Edit/View).
+
+Displayed accurately in the Bill Summary under Package Benefits.
+
+The following fields should always be saved and retrievable:
+
+package_id
+
+package_name
+
+benefit_amount (discount or used session value)
+
+remaining_sessions (if applicable)
+
+customer_id
+
+Expected Output Example (Backend JSON Save Payload):
+{
+  "invoice_id": 127,
+  "customer_id": 58,
+  "services": [
+    {
+      "service_id": 21,
+      "service_name": "Facial",
+      "price": 400,
+      "staff_id": 3,
+      "package_id": 9,
+      "package_benefit": 100,
+      "remaining_sessions": 3
+    }
+  ],
+  "package_benefits": {
+    "package_id": 9,
+    "package_name": "3+1 Facial",
+    "benefit_amount": 100,
+    "session_used": 1
+  },
+  "total": 400,
+  "discount": 0,
+  "grand_total": 300
+}
+
+Fix Recommendation:
+
+Update the frontend saveInvoice() function to include package-related details in the payload.
+
+Update the backend save endpoint to store these details correctly in the invoice table or a related mapping table.
+
+Modify the invoice fetch API to return package-related data when an invoice is viewed or edited.
+
+Bind the package details in the UI (Bill Summary) when reloading the invoice.
