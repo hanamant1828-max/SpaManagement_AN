@@ -543,14 +543,16 @@
                     <span style="font-size: 14px; color: #666;">Amount Paid</span>
                     <span style="font-size: 16px; font-weight: 600; color: #11998e;">₹{{ "%.2f"|format(invoice.amount_paid or 0) }}</span>
                 </div>
+                {% if (invoice.total_amount - (invoice.amount_paid or 0)) > 0 %}
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 14px; font-weight: 600; color: {% if (invoice.total_amount - (invoice.amount_paid or 0)) > 0 %}#dc3545{% else %}#11998e{% endif %};">
-                        {% if (invoice.total_amount - (invoice.amount_paid or 0)) > 0 %}Balance Due{% else %}Fully Paid{% endif %}
+                    <span style="font-size: 14px; font-weight: 600; color: #dc3545;">
+                        Balance Due
                     </span>
-                    <span style="font-size: 20px; font-weight: 700; color: {% if (invoice.total_amount - (invoice.amount_paid or 0)) > 0 %}#dc3545{% else %}#11998e{% endif %};">
+                    <span style="font-size: 20px; font-weight: 700; color: #dc3545;">
                         ₹{{ "%.2f"|format((invoice.total_amount - (invoice.amount_paid or 0))|abs) }}
                     </span>
                 </div>
+                {% endif %}
             </div>
         </div>
 
