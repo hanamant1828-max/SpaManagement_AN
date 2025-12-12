@@ -1371,67 +1371,89 @@ function initializeSearchableDropdowns() {
 
     // Initialize Select2 on all existing service, staff, product, and batch dropdowns
     initializeRowDropdowns();
+    
+    // Ensure service dropdowns are initialized with a slight delay as fallback
+    setTimeout(function() {
+        $('select[name="service_ids[]"]').each(function() {
+            if (!$(this).hasClass('select2-hidden-accessible')) {
+                console.log('⚠️ Re-initializing service dropdown that was missed');
+                initializeRowDropdowns($(this).closest('.service-row'));
+            }
+        });
+    }, 200);
 
     console.log('✅ Searchable dropdowns initialized (Customer, Service, Staff, Product, Batch, Payment Method)');
 }
 
 // Helper function to initialize Select2 on row dropdowns (can be called for new rows)
 function initializeRowDropdowns(container) {
+    // Ensure jQuery and Select2 are available
+    if (typeof $ === 'undefined' || typeof $.fn.select2 === 'undefined') {
+        console.error('❌ jQuery or Select2 not available for dropdown initialization');
+        return;
+    }
+    
     const scope = container ? $(container) : $(document);
+    console.log('🔧 Initializing dropdowns, scope:', container ? 'container' : 'document', 'found service selects:', scope.find('select[name="service_ids[]"]').length);
 
     // Service dropdowns - matching customer dropdown styling
     scope.find('select[name="service_ids[]"]').each(function() {
-        if (!$(this).hasClass('select2-hidden-accessible')) {
-            const $serviceSelect = $(this);
-            $serviceSelect.select2({
-                theme: 'bootstrap-5',
-                placeholder: 'Search or Select Service',
-                allowClear: true,
-                width: '100%',
-                dropdownAutoWidth: false,
-                dropdownParent: $('body'),
-                minimumResultsForSearch: 0, // Always show search box
-                containerCssClass: 'select2-service-container',
-                dropdownCssClass: 'select2-service-dropdown',
-                templateSelection: function(data) {
-                    // Custom template for selected item display
-                    if (!data.id) {
-                        return data.text;
-                    }
-                    // Show full service name and price for selected item
-                    return $(data.element).text();
-                },
-                matcher: function(params, data) {
-                    // If there are no search terms, return all data
-                    if ($.trim(params.term) === '') {
-                        return data;
-                    }
-
-                    // Search in text (service name and price)
-                    if (data.text && data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
-                        return data;
-                    }
-
-                    // Return null if the term should not be displayed
-                    return null;
-                }
-            }).on('select2:open', function() {
-                // Force search input to be visible and focused when dropdown opens
-                setTimeout(function() {
-                    const searchField = document.querySelector('.select2-search__field');
-                    if (searchField) {
-                        searchField.focus();
-                        searchField.placeholder = 'Type to search services...';
-                    }
-                }, 100);
-            }).on('select2:select', function(e) {
-                // Ensure the display updates after selection
-                const selectedText = $(e.params.data.element).text();
-                $(this).data('select2').$container.find('.select2-selection__rendered').text(selectedText);
-            }).on('change', function() { // Added handler for change event
-                handleServiceChange(this);
-            });
+        const $serviceSelect = $(this);
+        // Check if already initialized or is hidden
+        if ($serviceSelect.hasClass('select2-hidden-accessible')) {
+            console.log('⏭️ Service dropdown already initialized, skipping');
+            return; // Skip this one, already initialized
         }
+        
+        console.log('🎯 Initializing service dropdown with Select2');
+        $serviceSelect.select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search or Select Service',
+            allowClear: true,
+            width: '100%',
+            dropdownAutoWidth: false,
+            dropdownParent: $('body'),
+            minimumResultsForSearch: 0, // Always show search box
+            containerCssClass: 'select2-service-container',
+            dropdownCssClass: 'select2-service-dropdown',
+            templateSelection: function(data) {
+                // Custom template for selected item display
+                if (!data.id) {
+                    return data.text;
+                }
+                // Show full service name and price for selected item
+                return $(data.element).text();
+            },
+            matcher: function(params, data) {
+                // If there are no search terms, return all data
+                if ($.trim(params.term) === '') {
+                    return data;
+                }
+
+                // Search in text (service name and price)
+                if (data.text && data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
+                    return data;
+                }
+
+                // Return null if the term should not be displayed
+                return null;
+            }
+        }).on('select2:open', function() {
+            // Force search input to be visible and focused when dropdown opens
+            setTimeout(function() {
+                const searchField = document.querySelector('.select2-search__field');
+                if (searchField) {
+                    searchField.focus();
+                    searchField.placeholder = 'Type to search services...';
+                }
+            }, 100);
+        }).on('select2:select', function(e) {
+            // Ensure the display updates after selection
+            const selectedText = $(e.params.data.element).text();
+            $(this).data('select2').$container.find('.select2-selection__rendered').text(selectedText);
+        }).on('change', function() { // Added handler for change event
+            handleServiceChange(this);
+        });
     });
 
     // Staff dropdowns (for service rows) - matching customer dropdown styling
