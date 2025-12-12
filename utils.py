@@ -6,11 +6,11 @@ from datetime import datetime, date, timedelta
 import re
 
 def format_currency(amount):
-    """Format amount as currency with safe conversion"""
+    """Format amount as currency with safe conversion (Indian Rupees)"""
     try:
-        return f"${float(amount or 0):.2f}"
+        return f"₹{float(amount or 0):.2f}"
     except (ValueError, TypeError):
-        return "$0.00"
+        return "₹0.00"
 
 def safe_string(value, default=""):
     """Safely convert value to string with default"""
