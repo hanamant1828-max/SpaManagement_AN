@@ -376,17 +376,7 @@
                     </div>
                     {% endif %}
                 </div>
-                <div class="col-md-7 text-center">
-                    <div class="company-name">{{ gst_config.business_name or 'Spa & Wellness' }}</div>
-                    <div class="company-details">
-                        {{ gst_config.business_address or 'Your Business Address' }}<br>
-                        Phone: {{ gst_config.business_phone or '+91-XXXXXXXXXX' }} | Email: {{ gst_config.business_email or 'info@yourspa.com' }}
-                    </div>
-                    <div class="gstin-badge">
-                        <strong>GSTIN:</strong> {{ gst_config.gstin_number or '29XXXXX1234Z1Z5' }}
-                    </div>
-                </div>
-                <div class="col-md-3 text-end">
+                <div class="col-md-5 text-center">
                     <div class="invoice-title">
                         <span class="flower-icon">
                             <svg viewBox="0 0 24 24" fill="#8b5a8b">
@@ -394,6 +384,17 @@
                             </svg>
                         </span>
                         INVOICE
+                    </div>
+                </div>
+                <div class="col-md-5 text-end">
+                    <div class="company-name" style="font-size: 1.6rem;">{{ gst_config.business_name or 'Spa & Wellness' }}</div>
+                    <div class="company-details">
+                        {{ gst_config.business_address or 'Your Business Address' }}<br>
+                        Phone: {{ gst_config.business_phone or '+91-XXXXXXXXXX' }}<br>
+                        Email: {{ gst_config.business_email or 'info@yourspa.com' }}
+                    </div>
+                    <div class="gstin-badge">
+                        <strong>GSTIN:</strong> {{ gst_config.gstin_number or '29XXXXX1234Z1Z5' }}
                     </div>
                 </div>
             </div>
