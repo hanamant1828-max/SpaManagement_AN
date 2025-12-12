@@ -2853,12 +2853,6 @@ function renderCustomerDetails(customer, container) {
                 </td>
                 <td>${customer.gender ? escapeHtml(customer.gender.charAt(0).toUpperCase() + customer.gender.slice(1)) : 'Not specified'}</td>
             </tr>
-            <tr>
-                <td class="fw-bold">
-                    <i class="fas fa-birthday-cake text-danger me-2" aria-hidden="true"></i>Date of Birth
-                </td>
-                <td>${customer.date_of_birth ? new Date(customer.date_of_birth).toLocaleDateString() + ` (${age} years)` : 'Not provided'}</td>
-            </tr>
             ${customer.address ? `
             <tr>
                 <td class="fw-bold">
