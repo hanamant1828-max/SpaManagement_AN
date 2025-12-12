@@ -112,22 +112,42 @@
 
     .alert-badge.warning {
         background: linear-gradient(135deg, #fef3c7, #fde68a);
-        color: #92400e;
+        color: #78350f;
+    }
+
+    .alert-badge.warning span,
+    .alert-badge.warning i {
+        color: #78350f;
     }
 
     .alert-badge.danger {
         background: linear-gradient(135deg, #fee2e2, #fecaca);
-        color: #b91c1c;
+        color: #991b1b;
+    }
+
+    .alert-badge.danger span,
+    .alert-badge.danger i {
+        color: #991b1b;
     }
 
     .alert-badge.info {
         background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-        color: #1e40af;
+        color: #1e3a8a;
+    }
+
+    .alert-badge.info span,
+    .alert-badge.info i {
+        color: #1e3a8a;
     }
 
     .alert-badge.success {
         background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-        color: #065f46;
+        color: #064e3b;
+    }
+
+    .alert-badge.success span,
+    .alert-badge.success i {
+        color: #064e3b;
     }
 
     .alert-badge .count {
@@ -510,10 +530,10 @@
         margin-top: 0.25rem;
     }
 
-    .breakdown-item.scheduled .breakdown-label { color: #3b82f6; }
-    .breakdown-item.completed .breakdown-label { color: #10b981; }
-    .breakdown-item.cancelled .breakdown-label { color: #ef4444; }
-    .breakdown-item.no-show .breakdown-label { color: #f59e0b; }
+    .breakdown-item.scheduled .breakdown-label { color: #1e3a8a; }
+    .breakdown-item.completed .breakdown-label { color: #064e3b; }
+    .breakdown-item.cancelled .breakdown-label { color: #991b1b; }
+    .breakdown-item.no-show .breakdown-label { color: #78350f; }
 
     .quick-actions {
         background: white;
@@ -580,6 +600,11 @@
         font-weight: 600;
         text-align: center;
         font-size: 0.9rem;
+        color: #1e293b !important;
+    }
+
+    .action-btn:hover span {
+        color: #0f172a !important;
     }
 
     .charts-grid {
