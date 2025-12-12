@@ -2689,3 +2689,75 @@ def list_integrated_invoices():
 def billing_integrated_redirect():
     """Redirect old billing to new integrated billing"""
     return redirect(url_for('integrated_billing'))
+
+
+@app.route('/invoice/professional/<int:invoice_id>')
+@login_required
+def view_professional_invoice(invoice_id):
+    """View professional floral-style invoice"""
+    from models import EnhancedInvoice, InvoiceItem, SystemSetting
+    from modules.settings.settings_queries import get_gst_settings
+    
+    invoice = EnhancedInvoice.query.get_or_404(invoice_id)
+    invoice_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
+    gst_config = get_gst_settings()
+    
+    # Get business settings
+    business_name_setting = SystemSetting.query.filter_by(key='business_name').first()
+    business_address_setting = SystemSetting.query.filter_by(key='business_address').first()
+    business_phone_setting = SystemSetting.query.filter_by(key='business_phone').first()
+    business_email_setting = SystemSetting.query.filter_by(key='business_email').first()
+    
+    # Format items for template
+    items = []
+    for item in invoice_items:
+        tax_rate = "CGST 9% + SGST 9%" if item.item_type == 'service' else "CGST 9% + SGST 9%"
+        tax_amount = float(item.final_amount or 0) * 0.18
+        items.append({
+            'description': item.item_name,
+            'hsn_sac': '998312' if item.item_type == 'service' else '3304',
+            'qty': item.quantity,
+            'rate': f"{float(item.unit_price or 0):,.2f}",
+            'amount': f"{float(item.final_amount or 0):,.2f}",
+            'tax_rate': tax_rate,
+            'tax_amount': f"{tax_amount:,.2f}"
+        })
+    
+    # Calculate totals
+    subtotal = float(invoice.subtotal or 0)
+    taxable_amount = subtotal - float(invoice.discount_amount or 0)
+    cgst = taxable_amount * (gst_config.get('cgst_rate', 9) / 100)
+    sgst = taxable_amount * (gst_config.get('sgst_rate', 9) / 100)
+    total = float(invoice.total_amount or 0)
+    
+    return render_template('invoice_professional.html',
+        business_name=business_name_setting.value.split()[0] if business_name_setting else 'SPA &',
+        business_name_line2=' '.join(business_name_setting.value.split()[1:]) if business_name_setting else 'SALON',
+        business_tagline='Beauty & Wellness',
+        business_address=business_address_setting.value if business_address_setting else '',
+        business_phone=business_phone_setting.value if business_phone_setting else '',
+        business_email=business_email_setting.value if business_email_setting else '',
+        business_gstin=gst_config.get('gstin', ''),
+        invoice_number=invoice.invoice_number,
+        invoice_date=invoice.invoice_date.strftime('%d/%m/%Y') if invoice.invoice_date else '',
+        due_date=invoice.invoice_date.strftime('%d/%m/%Y') if invoice.invoice_date else '',
+        gst_treatment='Intrastate',
+        gst_type='CGST + SGST',
+        client_name=invoice.customer.name if invoice.customer else 'Customer',
+        client_phone=invoice.customer.phone if invoice.customer else '',
+        items=items,
+        subtotal=f"{subtotal:,.2f}",
+        taxable_amount=f"{taxable_amount:,.2f}",
+        cgst_amount=f"{cgst:,.2f}",
+        sgst_amount=f"{sgst:,.2f}",
+        total_amount=f"{total:,.2f}",
+        amount_in_words=number_to_words(total),
+        payment_method=invoice.payment_method or 'Cash'
+    )
+
+
+@app.route('/invoice/professional/preview')
+@login_required
+def preview_professional_invoice():
+    """Preview professional invoice template with sample data"""
+    return render_template('invoice_professional.html')

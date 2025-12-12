@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Invoice - Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: #e8a4c9;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+
+        .invoice-wrapper {
+            background: #e8a4c9;
+            padding: 30px;
+            max-width: 850px;
+            width: 100%;
+        }
+
+        .invoice-container {
+            background: #f5f0e8;
+            position: relative;
+            padding: 40px 50px;
+            min-height: 1100px;
+            overflow: hidden;
+        }
+
+        /* Floral Decorations - Top Left */
+        .floral-top-left {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 130px;
+            height: 160px;
+            overflow: visible;
+        }
+
+        .flower-pink {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: radial-gradient(ellipse at center, #f48fb1 0%, #e91e63 50%, #c2185b 100%);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            top: 10px;
+            left: 20px;
+            transform: rotate(-20deg);
+            box-shadow: inset 0 -10px 20px rgba(0,0,0,0.1);
+        }
+
+        .flower-pink::before {
+            content: '';
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(ellipse at center, #f8bbd9 0%, #f48fb1 100%);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            top: -20px;
+            left: 25px;
+            transform: rotate(30deg);
+        }
+
+        .flower-pink::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(ellipse at center, #fce4ec 0%, #f8bbd9 100%);
+            border-radius: 50%;
+            top: 10px;
+            left: 50px;
+            transform: rotate(-10deg);
+        }
+
+        .leaf-green {
+            position: absolute;
+            width: 60px;
+            height: 30px;
+            background: linear-gradient(135deg, #81c784 0%, #4caf50 50%, #388e3c 100%);
+            border-radius: 0 100% 0 100%;
+            top: 80px;
+            left: 5px;
+            transform: rotate(-45deg);
+        }
+
+        .leaf-green::before {
+            content: '';
+            position: absolute;
+            width: 50px;
+            height: 25px;
+            background: linear-gradient(135deg, #a5d6a7 0%, #66bb6a 100%);
+            border-radius: 0 100% 0 100%;
+            top: 20px;
+            left: 30px;
+            transform: rotate(30deg);
+        }
+
+        /* Floral Decorations - Bottom Right (Orange Marigold) */
+        .floral-bottom-right {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            width: 120px;
+            height: 140px;
+        }
+
+        .marigold {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle at 50% 50%, 
+                #fff8e1 0%, 
+                #ffcc02 20%, 
+                #ff9800 40%, 
+                #f57c00 60%, 
+                #e65100 80%);
+            border-radius: 50%;
+            box-shadow: 
+                inset 0 0 30px rgba(255,152,0,0.5),
+                0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .marigold::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #fff59d 0%, #ffeb3b 100%);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .marigold-leaf {
+            position: absolute;
+            width: 50px;
+            height: 25px;
+            background: linear-gradient(135deg, #81c784 0%, #4caf50 100%);
+            border-radius: 0 100% 0 100%;
+            bottom: 0;
+            right: 30px;
+            transform: rotate(20deg);
+        }
+
+        /* Stem with small flower */
+        .stem-decoration {
+            position: absolute;
+            bottom: 250px;
+            left: 60px;
+            width: 3px;
+            height: 150px;
+            background: linear-gradient(to top, #4caf50, #81c784);
+        }
+
+        .small-flower {
+            position: absolute;
+            top: -25px;
+            left: -12px;
+            width: 30px;
+            height: 25px;
+        }
+
+        .small-flower::before {
+            content: '';
+            position: absolute;
+            width: 25px;
+            height: 20px;
+            background: radial-gradient(ellipse at center, #f48fb1 0%, #e91e63 100%);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            transform: rotate(-10deg);
+        }
+
+        .small-flower::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ffeb3b;
+            border-radius: 50%;
+            top: 5px;
+            left: 8px;
+        }
+
+        /* Header Section */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            padding-left: 110px;
+        }
+
+        .business-name {
+            flex: 1;
+        }
+
+        .business-name h1 {
+            font-size: 38px;
+            color: #c2185b;
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-family: 'Georgia', serif;
+        }
+
+        .business-name .tagline {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .header-center {
+            flex: 0.4;
+            text-align: center;
+            padding-top: 10px;
+        }
+
+        .butterfly {
+            font-size: 36px;
+        }
+
+        .header-right {
+            flex: 1;
+            text-align: right;
+        }
+
+        .invoice-title {
+            font-size: 26px;
+            color: #8d6e63;
+            font-weight: 400;
+            letter-spacing: 3px;
+            margin-bottom: 5px;
+        }
+
+        .business-address {
+            font-size: 11px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Info Section */
+        .info-section {
+            display: flex;
+            justify-content: space-between;
+            background: #fff;
+            padding: 15px 20px;
+            border-radius: 3px;
+            margin-bottom: 25px;
+            border: 1px solid #e0d6c8;
+        }
+
+        .info-column {
+            flex: 1;
+        }
+
+        .info-column h4 {
+            font-size: 11px;
+            color: #c2185b;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .info-column p {
+            font-size: 11px;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .info-column.right-align {
+            text-align: right;
+        }
+
+        .invoice-meta span {
+            display: block;
+            font-size: 11px;
+            color: #555;
+        }
+
+        .invoice-meta .label {
+            color: #888;
+        }
+
+        /* GST Badge */
+        .gst-badge {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        /* Items Table */
+        .items-section {
+            margin-bottom: 20px;
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-top: 2px solid #c2185b;
+            border-bottom: 2px solid #c2185b;
+            margin-bottom: 10px;
+        }
+
+        .table-header span {
+            font-size: 10px;
+            font-weight: 600;
+            color: #c2185b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .col-sno { width: 5%; text-align: center; }
+        .col-desc { width: 22%; }
+        .col-hsn { width: 10%; text-align: center; }
+        .col-qty { width: 7%; text-align: center; }
+        .col-rate { width: 11%; text-align: right; }
+        .col-amount { width: 11%; text-align: right; }
+        .col-tax-rate { width: 18%; text-align: center; }
+        .col-tax-amt { width: 11%; text-align: right; }
+
+        .table-header .plus-icon {
+            color: #c2185b;
+            font-size: 14px;
+            margin: 0 8px;
+        }
+
+        .item-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e8e0d5;
+        }
+
+        .item-row span {
+            font-size: 11px;
+            color: #444;
+        }
+
+        .item-row:nth-child(even) {
+            background: rgba(255,255,255,0.5);
+        }
+
+        /* Summary Section */
+        .summary-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .terms-section {
+            flex: 1;
+            padding-right: 40px;
+        }
+
+        .terms-section h4 {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .terms-section p {
+            font-size: 10px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .amount-words {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 3px;
+            border: 1px solid #e0d6c8;
+        }
+
+        .amount-words .label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .amount-words .value {
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
+            margin-top: 3px;
+        }
+
+        .payment-section {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            background: #fff;
+            border-radius: 3px;
+            border: 1px solid #e0d6c8;
+            display: inline-block;
+        }
+
+        .payment-section .label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .payment-section .value {
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .totals-box {
+            width: 240px;
+            text-align: right;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 12px;
+        }
+
+        .total-row .label {
+            color: #888;
+        }
+
+        .total-row .value {
+            color: #444;
+            font-weight: 500;
+        }
+
+        .total-row.grand-total {
+            border-top: 2px solid #c2185b;
+            margin-top: 8px;
+            padding-top: 10px;
+        }
+
+        .total-row.grand-total .label,
+        .total-row.grand-total .value {
+            color: #c2185b;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            padding: 15px;
+            background: #c2185b;
+            color: #fff;
+            font-size: 11px;
+        }
+
+        .footer a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        /* Print Button */
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #c2185b;
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .print-btn:hover {
+            background: #ad1457;
+            transform: translateY(-2px);
+        }
+
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+
+            .invoice-wrapper {
+                background: #fff;
+                padding: 0;
+                max-width: 100%;
+            }
+
+            .print-btn {
+                display: none;
+            }
+
+            .invoice-container {
+                box-shadow: none;
+                min-height: auto;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .invoice-container {
+                padding: 20px;
+            }
+
+            .header {
+                flex-direction: column;
+                padding-left: 0;
+                margin-top: 100px;
+            }
+
+            .header-right {
+                text-align: left;
+                margin-top: 15px;
+            }
+
+            .info-section {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .info-column.right-align {
+                text-align: left;
+            }
+
+            .table-header, .item-row {
+                font-size: 9px;
+            }
+
+            .col-hsn, .col-tax-rate {
+                display: none;
+            }
+
+            .summary-section {
+                flex-direction: column;
+            }
+
+            .totals-box {
+                width: 100%;
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-btn" onclick="window.print()">
+        Print Invoice
+    </button>
+
+    <div class="invoice-wrapper">
+        <div class="invoice-container">
+            <!-- Floral Decorations - Top Left -->
+            <div class="floral-top-left">
+                <div class="flower-pink"></div>
+                <div class="leaf-green"></div>
+            </div>
+
+            <!-- Floral Decorations - Bottom Right -->
+            <div class="floral-bottom-right">
+                <div class="marigold"></div>
+                <div class="marigold-leaf"></div>
+            </div>
+
+            <!-- Stem with small flower -->
+            <div class="stem-decoration">
+                <div class="small-flower"></div>
+            </div>
+
+            <!-- Header -->
+            <div class="header">
+                <div class="business-name">
+                    <h1>HANAMANT<br>SPA & SALON</h1>
+                    <p class="tagline">Beauty & Wellness</p>
+                </div>
+                <div class="header-center">
+                    <span class="butterfly">&#129419;</span>
+                </div>
+                <div class="header-right">
+                    <h2 class="invoice-title">INVOICE</h2>
+                    <div class="business-address">
+                        123 Main Street, Bangalore<br>
+                        Phone: +91 9876543210<br>
+                        Email: info@hanamant.com<br>
+                        GSTIN: 29AABCU9603R1ZX
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Section -->
+            <div class="info-section">
+                <div class="info-column">
+                    <h4>Bill To</h4>
+                    <p>
+                        <strong>Priya Sharma</strong><br>
+                        Phone: +91 9876543210<br>
+                        Address: 45, MG Road, Bangalore
+                    </p>
+                </div>
+                <div class="info-column">
+                    <h4>GST Treatment</h4>
+                    <p>Intrastate</p>
+                    <span class="gst-badge">CGST + SGST</span>
+                </div>
+                <div class="info-column right-align">
+                    <div class="invoice-meta">
+                        <span><span class="label">Invoice #:</span> INV-2025-00156</span>
+                        <span><span class="label">Date:</span> 12/12/2025</span>
+                        <span><span class="label">Due Date:</span> 12/12/2025</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="items-section">
+                <div class="table-header">
+                    <span class="col-sno">S.No</span>
+                    <span class="col-desc">DESCRIPTION</span>
+                    <span class="plus-icon">+</span>
+                    <span class="col-hsn">HSN/SAC</span>
+                    <span class="col-qty">QTY</span>
+                    <span class="col-rate">RATE</span>
+                    <span class="col-amount">AMOUNT</span>
+                    <span class="col-tax-rate">TAX RATE</span>
+                    <span class="col-tax-amt">TAX AMT</span>
+                </div>
+
+                <div class="items-list">
+                    <div class="item-row">
+                        <span class="col-sno">1</span>
+                        <span class="col-desc">Hair Cut & Styling</span>
+                        <span class="col-hsn">998312</span>
+                        <span class="col-qty">1</span>
+                        <span class="col-rate">&#8377;500</span>
+                        <span class="col-amount">&#8377;500</span>
+                        <span class="col-tax-rate">CGST 9% + SGST 9%</span>
+                        <span class="col-tax-amt">&#8377;90</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="col-sno">2</span>
+                        <span class="col-desc">Facial Treatment</span>
+                        <span class="col-hsn">998312</span>
+                        <span class="col-qty">1</span>
+                        <span class="col-rate">&#8377;1,200</span>
+                        <span class="col-amount">&#8377;1,200</span>
+                        <span class="col-tax-rate">CGST 9% + SGST 9%</span>
+                        <span class="col-tax-amt">&#8377;216</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="col-sno">3</span>
+                        <span class="col-desc">Manicure</span>
+                        <span class="col-hsn">998312</span>
+                        <span class="col-qty">1</span>
+                        <span class="col-rate">&#8377;400</span>
+                        <span class="col-amount">&#8377;400</span>
+                        <span class="col-tax-rate">CGST 9% + SGST 9%</span>
+                        <span class="col-tax-amt">&#8377;72</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="col-sno">4</span>
+                        <span class="col-desc">Pedicure</span>
+                        <span class="col-hsn">998312</span>
+                        <span class="col-qty">1</span>
+                        <span class="col-rate">&#8377;500</span>
+                        <span class="col-amount">&#8377;500</span>
+                        <span class="col-tax-rate">CGST 9% + SGST 9%</span>
+                        <span class="col-tax-amt">&#8377;90</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="col-sno">5</span>
+                        <span class="col-desc">Body Massage (60 min)</span>
+                        <span class="col-hsn">998312</span>
+                        <span class="col-qty">1</span>
+                        <span class="col-rate">&#8377;1,500</span>
+                        <span class="col-amount">&#8377;1,500</span>
+                        <span class="col-tax-rate">CGST 9% + SGST 9%</span>
+                        <span class="col-tax-amt">&#8377;270</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="summary-section">
+                <div class="terms-section">
+                    <div class="amount-words">
+                        <span class="label">Amount in Words:</span>
+                        <div class="value">Four Thousand Eight Hundred Thirty Eight Rupees Only</div>
+                    </div>
+
+                    <div class="payment-section">
+                        <span class="label">Payment Method:</span>
+                        <span class="value">UPI</span>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <h4>Terms & Conditions</h4>
+                        <p>
+                            1. Payment is due upon receipt of services.<br>
+                            2. No refunds for services already rendered.<br>
+                            3. Please retain this invoice for your records.<br>
+                            4. Thank you for choosing our services!
+                        </p>
+                    </div>
+                </div>
+
+                <div class="totals-box">
+                    <div class="total-row">
+                        <span class="label">Subtotal</span>
+                        <span class="value">&#8377;4,100</span>
+                    </div>
+                    <div class="total-row">
+                        <span class="label">Taxable Amount</span>
+                        <span class="value">&#8377;4,100</span>
+                    </div>
+                    <div class="total-row">
+                        <span class="label">CGST (9%)</span>
+                        <span class="value">&#8377;369</span>
+                    </div>
+                    <div class="total-row">
+                        <span class="label">SGST (9%)</span>
+                        <span class="value">&#8377;369</span>
+                    </div>
+                    <div class="total-row grand-total">
+                        <span class="label">Total</span>
+                        <span class="value">&#8377;4,838</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                &#9993; info@hanamant.com &#8226; &#127760; www.hanamant.com
+            </div>
+        </div>
+    </div>
+</body>
+</html>

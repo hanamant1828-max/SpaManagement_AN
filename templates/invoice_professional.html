@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice - {{ invoice_number }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: #e8a4c9;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+
+        .invoice-wrapper {
+            background: #e8a4c9;
+            padding: 30px;
+            max-width: 850px;
+            width: 100%;
+        }
+
+        .invoice-container {
+            background: #f5f0e8;
+            position: relative;
+            padding: 40px 50px;
+            min-height: 1100px;
+        }
+
+        /* Floral Decorations */
+        .floral-top-left {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 120px;
+            height: 140px;
+            background: linear-gradient(135deg, #d4548a 0%, #e87aa3 50%, #8bc34a 100%);
+            clip-path: polygon(0 0, 80% 0, 100% 20%, 60% 40%, 80% 60%, 40% 80%, 20% 100%, 0 100%);
+            opacity: 0.9;
+        }
+
+        .floral-top-left::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            width: 60px;
+            height: 80px;
+            background: linear-gradient(to bottom, #e87aa3, #f8bbd9);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            transform: rotate(-30deg);
+        }
+
+        .floral-top-left::after {
+            content: '';
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            width: 50px;
+            height: 70px;
+            background: linear-gradient(to bottom, #7cb342, #aed581);
+            border-radius: 0 80% 0 80%;
+            transform: rotate(-45deg);
+        }
+
+        .floral-bottom-right {
+            position: absolute;
+            bottom: 60px;
+            right: -20px;
+            width: 140px;
+            height: 140px;
+        }
+
+        .floral-bottom-right::before {
+            content: '';
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, #ffb74d 30%, #ff9800 50%, #e65100 80%);
+            border-radius: 50%;
+            box-shadow: 
+                inset 0 0 20px rgba(255,255,255,0.3),
+                0 0 10px rgba(255,152,0,0.5);
+        }
+
+        .floral-bottom-right::after {
+            content: '';
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            width: 40px;
+            height: 60px;
+            background: linear-gradient(to bottom, #7cb342, #aed581);
+            border-radius: 0 80% 0 80%;
+            transform: rotate(30deg);
+        }
+
+        .stem-decoration {
+            position: absolute;
+            bottom: 200px;
+            left: 50px;
+            width: 3px;
+            height: 180px;
+            background: linear-gradient(to top, #7cb342, #aed581);
+        }
+
+        .stem-decoration::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -15px;
+            width: 35px;
+            height: 25px;
+            background: linear-gradient(135deg, #e87aa3 0%, #f48fb1 100%);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            transform: rotate(-20deg);
+        }
+
+        .stem-decoration::after {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -5px;
+            width: 20px;
+            height: 15px;
+            background: #ffeb3b;
+            border-radius: 50%;
+        }
+
+        /* Header Section */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            padding-left: 100px;
+        }
+
+        .business-name {
+            flex: 1;
+        }
+
+        .business-name h1 {
+            font-size: 42px;
+            color: #c2185b;
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-family: 'Georgia', serif;
+        }
+
+        .business-name .tagline {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .header-center {
+            flex: 0.5;
+            text-align: center;
+            padding-top: 10px;
+        }
+
+        .butterfly {
+            font-size: 40px;
+            color: #e87aa3;
+        }
+
+        .header-right {
+            flex: 1;
+            text-align: right;
+        }
+
+        .invoice-title {
+            font-size: 28px;
+            color: #8d6e63;
+            font-weight: 400;
+            letter-spacing: 3px;
+            margin-bottom: 5px;
+        }
+
+        .business-address {
+            font-size: 11px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Info Section */
+        .info-section {
+            display: flex;
+            justify-content: space-between;
+            background: #fff;
+            padding: 15px 20px;
+            border-radius: 3px;
+            margin-bottom: 25px;
+            border: 1px solid #e0d6c8;
+        }
+
+        .info-column {
+            flex: 1;
+        }
+
+        .info-column h4 {
+            font-size: 11px;
+            color: #c2185b;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .info-column p {
+            font-size: 11px;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .info-column.right-align {
+            text-align: right;
+        }
+
+        .invoice-meta span {
+            display: block;
+            font-size: 11px;
+            color: #555;
+        }
+
+        .invoice-meta .label {
+            color: #888;
+        }
+
+        /* Items Table */
+        .items-section {
+            margin-bottom: 20px;
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-top: 2px solid #c2185b;
+            border-bottom: 2px solid #c2185b;
+            margin-bottom: 10px;
+        }
+
+        .table-header span {
+            font-size: 11px;
+            font-weight: 600;
+            color: #c2185b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .col-sno { width: 5%; text-align: center; }
+        .col-desc { width: 25%; }
+        .col-hsn { width: 10%; text-align: center; }
+        .col-qty { width: 8%; text-align: center; }
+        .col-rate { width: 12%; text-align: right; }
+        .col-amount { width: 12%; text-align: right; }
+        .col-tax-rate { width: 14%; text-align: center; }
+        .col-tax-amt { width: 14%; text-align: right; }
+
+        .table-header .plus-icon {
+            color: #c2185b;
+            font-size: 16px;
+            margin: 0 10px;
+        }
+
+        .item-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e8e0d5;
+        }
+
+        .item-row span {
+            font-size: 12px;
+            color: #444;
+        }
+
+        .item-row:nth-child(even) {
+            background: rgba(255,255,255,0.5);
+        }
+
+        /* Summary Section */
+        .summary-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .terms-section {
+            flex: 1;
+            padding-right: 40px;
+        }
+
+        .terms-section h4 {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .terms-section p {
+            font-size: 10px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .amount-words {
+            margin-top: 15px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 3px;
+            border: 1px solid #e0d6c8;
+        }
+
+        .amount-words .label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .amount-words .value {
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
+            margin-top: 3px;
+        }
+
+        .totals-box {
+            width: 250px;
+            text-align: right;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 12px;
+        }
+
+        .total-row .label {
+            color: #888;
+        }
+
+        .total-row .value {
+            color: #444;
+            font-weight: 500;
+        }
+
+        .total-row.grand-total {
+            border-top: 2px solid #c2185b;
+            margin-top: 8px;
+            padding-top: 10px;
+        }
+
+        .total-row.grand-total .label,
+        .total-row.grand-total .value {
+            color: #c2185b;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        /* Payment Section */
+        .payment-section {
+            margin-top: 20px;
+            padding: 12px 15px;
+            background: #fff;
+            border-radius: 3px;
+            border: 1px solid #e0d6c8;
+            display: inline-block;
+        }
+
+        .payment-section .label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .payment-section .value {
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            padding: 15px;
+            background: #c2185b;
+            color: #fff;
+            font-size: 11px;
+        }
+
+        .footer a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        /* Print Button */
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #c2185b;
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .print-btn:hover {
+            background: #ad1457;
+            transform: translateY(-2px);
+        }
+
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+
+            .invoice-wrapper {
+                background: #fff;
+                padding: 0;
+                max-width: 100%;
+            }
+
+            .print-btn {
+                display: none;
+            }
+
+            .invoice-container {
+                box-shadow: none;
+                min-height: auto;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .invoice-container {
+                padding: 20px;
+            }
+
+            .header {
+                flex-direction: column;
+                padding-left: 0;
+                margin-top: 100px;
+            }
+
+            .header-right {
+                text-align: left;
+                margin-top: 15px;
+            }
+
+            .info-section {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .info-column.right-align {
+                text-align: left;
+            }
+
+            .table-header, .item-row {
+                font-size: 10px;
+            }
+
+            .col-hsn, .col-tax-rate {
+                display: none;
+            }
+
+            .summary-section {
+                flex-direction: column;
+            }
+
+            .totals-box {
+                width: 100%;
+                margin-top: 20px;
+            }
+        }
+
+        /* GST Badge */
+        .gst-badge {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <button class="print-btn" onclick="window.print()">
+        🖨️ Print Invoice
+    </button>
+
+    <div class="invoice-wrapper">
+        <div class="invoice-container">
+            <!-- Floral Decorations -->
+            <div class="floral-top-left"></div>
+            <div class="floral-bottom-right"></div>
+            <div class="stem-decoration"></div>
+
+            <!-- Header -->
+            <div class="header">
+                <div class="business-name">
+                    <h1>{{ business_name | default('SPA &') }}<br>{{ business_name_line2 | default('SALON') }}</h1>
+                    <p class="tagline">{{ business_tagline | default('Beauty & Wellness') }}</p>
+                </div>
+                <div class="header-center">
+                    <span class="butterfly">🦋</span>
+                </div>
+                <div class="header-right">
+                    <h2 class="invoice-title">INVOICE</h2>
+                    <div class="business-address">
+                        {{ business_address | default('123 Main Street, City') }}<br>
+                        Phone: {{ business_phone | default('+91 9876543210') }}<br>
+                        Email: {{ business_email | default('info@spasalon.com') }}<br>
+                        GSTIN: {{ business_gstin | default('29XXXXX1234X1ZX') }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Section -->
+            <div class="info-section">
+                <div class="info-column">
+                    <h4>Bill To</h4>
+                    <p>
+                        <strong>{{ client_name | default('Client Name') }}</strong><br>
+                        Phone: {{ client_phone | default('+91 9876543210') }}<br>
+                        {{ client_address | default('') }}
+                    </p>
+                </div>
+                <div class="info-column">
+                    <h4>GST Treatment</h4>
+                    <p>{{ gst_treatment | default('Intrastate') }}</p>
+                    <span class="gst-badge">{{ gst_type | default('CGST + SGST') }}</span>
+                </div>
+                <div class="info-column right-align">
+                    <div class="invoice-meta">
+                        <span><span class="label">Invoice #:</span> {{ invoice_number | default('INV-00001') }}</span>
+                        <span><span class="label">Date:</span> {{ invoice_date | default('01/01/2025') }}</span>
+                        <span><span class="label">Due Date:</span> {{ due_date | default('15/01/2025') }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="items-section">
+                <div class="table-header">
+                    <span class="col-sno">S.No</span>
+                    <span class="col-desc">DESCRIPTION</span>
+                    <span class="plus-icon">+</span>
+                    <span class="col-hsn">HSN/SAC</span>
+                    <span class="col-qty">QTY</span>
+                    <span class="col-rate">RATE (₹)</span>
+                    <span class="col-amount">AMOUNT</span>
+                    <span class="col-tax-rate">TAX RATE</span>
+                    <span class="col-tax-amt">TAX AMT</span>
+                </div>
+
+                <div class="items-list">
+                    {% if items %}
+                        {% for item in items %}
+                        <div class="item-row">
+                            <span class="col-sno">{{ loop.index }}</span>
+                            <span class="col-desc">{{ item.description }}</span>
+                            <span class="col-hsn">{{ item.hsn_sac }}</span>
+                            <span class="col-qty">{{ item.qty }}</span>
+                            <span class="col-rate">₹{{ item.rate }}</span>
+                            <span class="col-amount">₹{{ item.amount }}</span>
+                            <span class="col-tax-rate">{{ item.tax_rate }}</span>
+                            <span class="col-tax-amt">₹{{ item.tax_amount }}</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <!-- Sample Items (Placeholders) -->
+                        <div class="item-row">
+                            <span class="col-sno">1</span>
+                            <span class="col-desc">Hair Cut & Styling</span>
+                            <span class="col-hsn">998312</span>
+                            <span class="col-qty">1</span>
+                            <span class="col-rate">₹500</span>
+                            <span class="col-amount">₹500</span>
+                            <span class="col-tax-rate">CGST 9% + SGST 9%</span>
+                            <span class="col-tax-amt">₹90</span>
+                        </div>
+                        <div class="item-row">
+                            <span class="col-sno">2</span>
+                            <span class="col-desc">Facial Treatment</span>
+                            <span class="col-hsn">998312</span>
+                            <span class="col-qty">1</span>
+                            <span class="col-rate">₹1,200</span>
+                            <span class="col-amount">₹1,200</span>
+                            <span class="col-tax-rate">CGST 9% + SGST 9%</span>
+                            <span class="col-tax-amt">₹216</span>
+                        </div>
+                        <div class="item-row">
+                            <span class="col-sno">3</span>
+                            <span class="col-desc">Manicure</span>
+                            <span class="col-hsn">998312</span>
+                            <span class="col-qty">1</span>
+                            <span class="col-rate">₹400</span>
+                            <span class="col-amount">₹400</span>
+                            <span class="col-tax-rate">CGST 9% + SGST 9%</span>
+                            <span class="col-tax-amt">₹72</span>
+                        </div>
+                        <div class="item-row">
+                            <span class="col-sno">4</span>
+                            <span class="col-desc">Pedicure</span>
+                            <span class="col-hsn">998312</span>
+                            <span class="col-qty">1</span>
+                            <span class="col-rate">₹500</span>
+                            <span class="col-amount">₹500</span>
+                            <span class="col-tax-rate">CGST 9% + SGST 9%</span>
+                            <span class="col-tax-amt">₹90</span>
+                        </div>
+                        <div class="item-row">
+                            <span class="col-sno">5</span>
+                            <span class="col-desc">Body Massage (60 min)</span>
+                            <span class="col-hsn">998312</span>
+                            <span class="col-qty">1</span>
+                            <span class="col-rate">₹1,500</span>
+                            <span class="col-amount">₹1,500</span>
+                            <span class="col-tax-rate">CGST 9% + SGST 9%</span>
+                            <span class="col-tax-amt">₹270</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="summary-section">
+                <div class="terms-section">
+                    <div class="amount-words">
+                        <span class="label">Amount in Words:</span>
+                        <div class="value">{{ amount_in_words | default('Four Thousand Eight Hundred Thirty Eight Rupees Only') }}</div>
+                    </div>
+
+                    <div class="payment-section">
+                        <span class="label">Payment Method:</span>
+                        <span class="value">{{ payment_method | default('Cash / UPI / Card') }}</span>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <h4>Terms & Conditions</h4>
+                        <p>
+                            {{ terms_conditions | default('1. Payment is due upon receipt of services.<br>2. No refunds for services already rendered.<br>3. Please retain this invoice for your records.<br>4. Thank you for choosing our services!') | safe }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="totals-box">
+                    <div class="total-row">
+                        <span class="label">Subtotal</span>
+                        <span class="value">₹{{ subtotal | default('4,100') }}</span>
+                    </div>
+                    <div class="total-row">
+                        <span class="label">Taxable Amount</span>
+                        <span class="value">₹{{ taxable_amount | default('4,100') }}</span>
+                    </div>
+                    <div class="total-row">
+                        <span class="label">CGST (9%)</span>
+                        <span class="value">₹{{ cgst_amount | default('369') }}</span>
+                    </div>
+                    <div class="total-row">
+                        <span class="label">SGST (9%)</span>
+                        <span class="value">₹{{ sgst_amount | default('369') }}</span>
+                    </div>
+                    <div class="total-row grand-total">
+                        <span class="label">Total</span>
+                        <span class="value">₹{{ total_amount | default('4,838') }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                📧 {{ business_email | default('info@spasalon.com') }} • 🌐 {{ business_website | default('www.spasalon.com') }}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Invoice Data Object (for dynamic replacement)
+        const invoiceData = {
+            // Business Details
+            business_name: '{{ business_name | default("SPA &") }}',
+            business_name_line2: '{{ business_name_line2 | default("SALON") }}',
+            business_tagline: '{{ business_tagline | default("Beauty & Wellness") }}',
+            business_address: '{{ business_address | default("123 Main Street, City") }}',
+            business_phone: '{{ business_phone | default("+91 9876543210") }}',
+            business_email: '{{ business_email | default("info@spasalon.com") }}',
+            business_gstin: '{{ business_gstin | default("29XXXXX1234X1ZX") }}',
+            business_website: '{{ business_website | default("www.spasalon.com") }}',
+
+            // Invoice Details
+            invoice_number: '{{ invoice_number | default("INV-00001") }}',
+            invoice_date: '{{ invoice_date | default("01/01/2025") }}',
+            due_date: '{{ due_date | default("15/01/2025") }}',
+            gst_treatment: '{{ gst_treatment | default("Intrastate") }}',
+            gst_type: '{{ gst_type | default("CGST + SGST") }}',
+
+            // Client Details
+            client_name: '{{ client_name | default("Client Name") }}',
+            client_phone: '{{ client_phone | default("+91 9876543210") }}',
+            client_address: '{{ client_address | default("") }}',
+
+            // Amounts
+            subtotal: '{{ subtotal | default("4,100") }}',
+            taxable_amount: '{{ taxable_amount | default("4,100") }}',
+            cgst_amount: '{{ cgst_amount | default("369") }}',
+            sgst_amount: '{{ sgst_amount | default("369") }}',
+            total_amount: '{{ total_amount | default("4,838") }}',
+            amount_in_words: '{{ amount_in_words | default("Four Thousand Eight Hundred Thirty Eight Rupees Only") }}',
+
+            // Payment
+            payment_method: '{{ payment_method | default("Cash / UPI / Card") }}',
+
+            // Items (array)
+            items: []
+        };
+
+        // Function to populate invoice dynamically
+        function populateInvoice(data) {
+            // Update all text content based on data
+            Object.keys(data).forEach(key => {
+                const elements = document.querySelectorAll(`[data-field="${key}"]`);
+                elements.forEach(el => {
+                    el.textContent = data[key];
+                });
+            });
+        }
+
+        // Function to add item to invoice
+        function addItem(item) {
+            const itemsList = document.querySelector('.items-list');
+            const itemCount = itemsList.querySelectorAll('.item-row').length + 1;
+            
+            const itemRow = document.createElement('div');
+            itemRow.className = 'item-row';
+            itemRow.innerHTML = `
+                <span class="col-sno">${itemCount}</span>
+                <span class="col-desc">${item.description}</span>
+                <span class="col-hsn">${item.hsn_sac}</span>
+                <span class="col-qty">${item.qty}</span>
+                <span class="col-rate">₹${item.rate}</span>
+                <span class="col-amount">₹${item.amount}</span>
+                <span class="col-tax-rate">${item.tax_rate}</span>
+                <span class="col-tax-amt">₹${item.tax_amount}</span>
+            `;
+            itemsList.appendChild(itemRow);
+        }
+
+        // Print function
+        function printInvoice() {
+            window.print();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Invoice template loaded');
+            console.log('Invoice Data:', invoiceData);
+        });
+    </script>
+</body>
+</html>
