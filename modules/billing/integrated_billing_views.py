@@ -878,6 +878,12 @@ def get_customer_appointments(customer_id):
             else:
                 # If still no match, log it for debugging
                 app.logger.warning(f"No matching service found for appointment {appointment.id} with service_name: {appointment.service_name}")
+            
+            # Ensure staff_id is always included from the appointment
+            if appointment.staff_id:
+                apt_dict['staff_id'] = appointment.staff_id
+            if appointment.staff_name:
+                apt_dict['staff_name'] = appointment.staff_name
 
             appointments_data.append(apt_dict)
 
