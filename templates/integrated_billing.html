@@ -742,7 +742,7 @@ textarea.form-control {
                         </h6>
                     </div>
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="form-group">
                                 <label class="form-label required">Select Customer</label>
                                 <select class="form-select form-select-lg" id="client_id" name="client_id" required>
@@ -760,9 +760,9 @@ textarea.form-control {
                             </div>
                         </div>
                         {% if not edit_mode %}
-                        <div class="col-md-6">
+                        <div class="col-md-12 mt-3">
                             <div class="form-group">
-                                <label class="form-label">Booked Appointments111</label>
+                                <label class="form-label">Booked Appointments</label>
                                 <div id="customerAppointments" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--spa-gray-300); border-radius: var(--radius-base); background: white;">
                                     <div style="padding: var(--space-4); text-align: center; color: var(--spa-gray-500);">
                                         <small><i class="fas fa-info-circle me-1"></i>Select customer to view appointments</small>
