@@ -1639,6 +1639,10 @@ select option,
 }
 
 /* ========== MODALS ========== */
+.modal-dialog {
+    margin-top: 70px;
+}
+
 .modal-content {
     border: none;
     border-radius: 1rem;
