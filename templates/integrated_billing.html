@@ -1691,7 +1691,7 @@ function loadCustomerAppointments(customerId) {
     }
     appointmentsDiv.innerHTML = '<div style="padding: var(--space-4); text-align: center;"><small><i class="fas fa-spinner spinner"></i> Loading appointments...</small></div>';
 
-    fetch(`/api/customer/${customerId}/appointments`)
+    fetch(`/api/billing/customer/${customerId}/appointments`)
         .then(res => res.json())
         .then(data => {
             if (data.success) {
@@ -4183,7 +4183,7 @@ function resetCustomerPackages() {
         }
 
         // Fetch all appointments for this customer
-        fetch(`/api/customer/${customerId}/appointments`)
+        fetch(`/api/billing/customer/${customerId}/appointments`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error ${response.status}`);

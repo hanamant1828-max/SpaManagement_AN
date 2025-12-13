@@ -103,7 +103,11 @@ def api_get_customer_appointments(customer_id):
             appointments_data.append({
                 'id': apt.id,
                 'client_name': customer.full_name,
+                'service_id': apt.service_id,
                 'service_name': apt.service.name if apt.service else 'Unknown',
+                'service_price': float(apt.service.price) if apt.service and apt.service.price else 0.0,
+                'service_duration': apt.service.duration if apt.service else 60,
+                'staff_id': apt.staff_id,
                 'staff_name': apt.assigned_staff.full_name if apt.assigned_staff else 'Unassigned',
                 'appointment_date': apt.appointment_date.isoformat(),
                 'status': apt.status,
@@ -123,7 +127,11 @@ def api_get_customer_appointments(customer_id):
             appointments_data.append({
                 'id': booking.id,
                 'client_name': booking.client_name,
+                'service_id': booking.service_id,
                 'service_name': booking.service_name,
+                'service_price': float(booking.service_price) if booking.service_price else 0.0,
+                'service_duration': booking.duration if booking.duration else 60,
+                'staff_id': booking.staff_id,
                 'staff_name': booking.staff_name,
                 'appointment_date': f"{booking.appointment_date.isoformat()}T{booking.start_time.isoformat()}",
                 'status': booking.status,

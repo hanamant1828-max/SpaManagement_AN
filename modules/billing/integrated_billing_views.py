@@ -755,9 +755,9 @@ def appointment_to_billing(appointment_id):
         flash(f'Error accessing billing for this appointment: {str(e)}', 'danger')
         return redirect(url_for('dashboard'))
 
-@app.route('/api/customer/<int:customer_id>/appointments')
+@app.route('/api/billing/customer/<int:customer_id>/appointments')
 @login_required
-def get_customer_appointments(customer_id):
+def get_customer_appointments_for_billing(customer_id):
     """API endpoint to fetch all confirmed/scheduled appointments for a customer"""
     try:
         from models import UnakiBooking, Customer, Service
