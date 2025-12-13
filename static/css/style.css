@@ -1960,10 +1960,26 @@ select option,
     font-weight: 600 !important;
 }
 
+.alert-warning *,
+.alert-warning a,
+.alert-warning strong,
+.alert-warning span,
+.alert-warning .badge {
+    color: #000000 !important;
+}
+
 .alert-danger {
     background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
     color: #000000 !important;
     font-weight: 600 !important;
+}
+
+.alert-danger *,
+.alert-danger a,
+.alert-danger strong,
+.alert-danger span,
+.alert-danger .badge {
+    color: #000000 !important;
 }
 
 .alert .feather {

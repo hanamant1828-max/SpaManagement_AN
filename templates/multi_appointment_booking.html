@@ -709,13 +709,43 @@
         font-weight: 600 !important;
     }
 
-    /* Global alert text override to BLACK */
-    .alert-danger, .alert-danger * {
+    /* Global alert text override to BLACK - all elements */
+    .alert-danger, .alert-danger *,
+    .alert-danger a, .alert-danger strong,
+    .alert-danger .badge, .alert-danger span {
         color: #000000 !important;
     }
     
-    .alert-warning, .alert-warning * {
+    .alert-warning, .alert-warning *,
+    .alert-warning a, .alert-warning strong,
+    .alert-warning .badge, .alert-warning span {
         color: #000000 !important;
+    }
+
+    /* Override Bootstrap badge text colors inside alerts */
+    .alert .badge.bg-warning,
+    .alert .badge.bg-danger,
+    .alert .badge.bg-info,
+    .alert .badge.bg-secondary,
+    .alert-warning .badge,
+    .alert-danger .badge {
+        color: #000000 !important;
+        font-weight: 700 !important;
+    }
+
+    /* Override Bootstrap text-dark class inside alerts */
+    .alert .text-dark,
+    .alert-warning .text-dark,
+    .alert-danger .text-dark {
+        color: #000000 !important;
+    }
+
+    /* Override any link colors inside alerts */
+    .alert a,
+    .alert-warning a,
+    .alert-danger a {
+        color: #000000 !important;
+        text-decoration: underline !important;
     }
 </style>
 
