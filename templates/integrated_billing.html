@@ -1374,7 +1374,35 @@ function initializeSearchableDropdowns() {
         allowClear: false,
         width: '100%',
         minimumResultsForSearch: Infinity
-    }).on('change', togglePaymentMethod); // Add listener here
+    }).on('change', function() {
+        togglePaymentMethod();
+        updatePaymentMethodValidation();
+    });
+    
+    // Initial validation state for payment method
+    updatePaymentMethodValidation();
+    
+    // Function to highlight payment method when empty
+    function updatePaymentMethodValidation() {
+        const paymentMethod = $('#paymentMethod').val();
+        const $container = $('#paymentMethod').next('.select2-container');
+        const $selection = $container.find('.select2-selection');
+        
+        if (!paymentMethod) {
+            $selection.css({
+                'border': '2px solid #dc3545',
+                'background-color': '#fff5f5'
+            });
+        } else {
+            $selection.css({
+                'border': '1px solid #dee2e6',
+                'background-color': '#ffffff'
+            });
+        }
+    }
+    
+    // Make function globally available for form validation
+    window.updatePaymentMethodValidation = updatePaymentMethodValidation;
 
     // Initialize Select2 on all existing service, staff, product, and batch dropdowns
     initializeRowDropdowns();
