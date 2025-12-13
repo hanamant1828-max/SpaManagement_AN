@@ -506,6 +506,12 @@ button[type="submit"],
         padding-left: 80px;
         transition: padding-left 0.3s ease;
     }
+    
+    /* Push content when sidebar is hovered */
+    body:has(#sidebar:hover),
+    body:has(.modern-sidebar:hover) {
+        padding-left: 280px;
+    }
 
     #sidebar {
         width: 80px !important;
@@ -535,6 +541,7 @@ button[type="submit"],
         overflow-y: auto;
         overflow-x: hidden;
         width: 100%;
+        transition: margin-left 0.3s ease;
     }
 }
 
@@ -710,10 +717,9 @@ button[type="submit"],
         z-index: 1050;
     }
     
-    /* Expanded state on hover - overlay mode */
+    /* Expanded state on hover - push mode */
     .modern-sidebar:hover {
         width: 280px !important;
-        box-shadow: 8px 0 30px rgba(0, 0, 0, 0.3);
     }
     
     .modern-sidebar .sidebar-header {
