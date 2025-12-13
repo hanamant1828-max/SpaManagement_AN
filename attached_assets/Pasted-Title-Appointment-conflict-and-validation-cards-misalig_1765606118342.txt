@@ -1,0 +1,67 @@
+Title:
+
+Appointment conflict and validation cards misaligned and not fully visible in “Book Multiple Appointments” screen
+
+Description:
+
+In the Book Multiple Appointments screen, the layout of validation cards and conflict messages under the Appointments section is not properly aligned.
+
+Some cards overlap or are not fully visible, and the spacing between stacked validation boxes (yellow and red) looks inconsistent. This makes it hard for users to clearly read conflict and schedule warning messages.
+
+From the attached screenshot, the following layout issues are visible:
+
+The red “Admin User has no shift scheduled…” alert overlaps or touches the yellow “Client has UNPAID appointment…” card.
+
+The outer appointment container box (with yellow background) is too narrow, cutting off the edges of the inner validation boxes.
+
+In some cases, text alignment inside alert boxes is not centered or consistent with other alert styles.
+
+There is no adequate margin or padding between stacked alerts and container boundaries.
+
+Expected Result:
+
+Each validation card (yellow or red) should have proper padding, margin, and full-width visibility within its parent container.
+
+All alert boxes should maintain consistent height, border-radius, and spacing.
+
+The message text should be clearly visible, not truncated or overlapping.
+
+The Appointments section layout should automatically adjust to accommodate one or more stacked alerts without cutting off any content.
+
+Suggested Fix (Frontend CSS/HTML):
+
+Add consistent spacing between stacked alert boxes:
+
+.alert {
+  margin-bottom: 10px;
+  padding: 10px 15px;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
+Ensure container div (.appointment-card or equivalent) has enough padding:
+
+.appointment-card {
+  padding: 15px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #fffbea; /* light yellow background */
+}
+
+
+Apply proper z-index to prevent overlapping of alert messages.
+
+Priority:
+
+Medium
+
+Type:
+
+UI / Layout Fix
+
+Module:
+
+Appointments → Book Multiple Appointments

@@ -505,9 +505,11 @@
         border: 2px solid #e9ecef;
         border-radius: 10px;
         padding: 20px;
+        padding-top: 25px;
         margin-bottom: 15px;
         position: relative;
         transition: all 0.3s;
+        overflow: visible;
     }
 
     .appointment-card:hover {
@@ -523,6 +525,53 @@
     .appointment-card.has-warning {
         border-color: #f59e0b !important;
         background: #fffbeb;
+    }
+
+    /* Validation alerts container styling - Fix stacking and spacing */
+    .appointment-card .alert {
+        margin-top: 12px;
+        margin-bottom: 10px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        width: 100%;
+        box-sizing: border-box;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .appointment-card .alert:first-of-type {
+        margin-top: 15px;
+    }
+
+    .appointment-card .alert:last-of-type {
+        margin-bottom: 0;
+    }
+
+    /* Ensure alerts don't overflow the card */
+    .appointment-card .alert i {
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .appointment-card .alert span,
+    .appointment-card .alert .conflict-message,
+    .appointment-card .alert .client-conflict-message,
+    .appointment-card .alert .internal-conflict-message {
+        flex: 1;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    /* Badge styling within alerts */
+    .appointment-card .alert .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        margin-left: 8px;
+        font-size: 11px;
+        vertical-align: middle;
     }
 
     .appointment-card.validating {
