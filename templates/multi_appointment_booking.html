@@ -19,9 +19,7 @@
                     </p>
                 </div>
 
-                    href="{{ url_for('unaki_booking') }}"
-                    class="btn btn-outline-secondary"
-                >
+                <a href="{{ url_for('unaki_booking') }}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left me-2"></i>Back to Calendar
                 </a>
             </div>
@@ -81,8 +79,8 @@
                                 <i class="fas fa-tag me-1"></i>Booking Source *
                             </label>
                             <select id="bookingSourceSelect" class="form-select" required>
-                                <option value="phone">Phone Call</option>
                                 <option value="walk_in">Walk-in</option>
+                                <option value="phone">Phone Call</option>
                             </select>
                             <small class="form-text text-muted mt-1">
                                 <i class="fas fa-info-circle me-1"></i>
