@@ -618,6 +618,30 @@ try:
 except Exception as e:
     print(f"⚠️ Integrated billing views import error: {e}")
 
+try:
+    from modules.billing.billing_reports_views import *
+    print("✅ Billing reports views imported")
+except Exception as e:
+    print(f"⚠️ Billing reports views import error: {e}")
+
+try:
+    from modules.billing.staff_revenue_report_views import *
+    print("✅ Staff revenue report views imported")
+except Exception as e:
+    print(f"⚠️ Staff revenue report views import error: {e}")
+
+try:
+    from modules.billing.client_revenue_report_views import *
+    print("✅ Client revenue report views imported")
+except Exception as e:
+    print(f"⚠️ Client revenue report views import error: {e}")
+
+try:
+    from modules.billing.service_revenue_report_views import *
+    print("✅ Service revenue report views imported")
+except Exception as e:
+    print(f"⚠️ Service revenue report views import error: {e}")
+
 # Import packages blueprint first
 try:
     from modules.packages.routes import packages_bp
