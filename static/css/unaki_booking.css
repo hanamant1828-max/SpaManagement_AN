@@ -1350,21 +1350,21 @@
 .alert-danger {
     background-color: #f8d7da !important;
     border-color: #f5c2c7 !important;
-    color: #5c2d2d !important;
+    color: #000000 !important;
 }
 
 .alert-danger i {
-    color: #8b3a3a !important;
+    color: #000000 !important;
 }
 
 .alert-warning {
     background-color: #fff3cd !important;
     border-color: #ffecb5 !important;
-    color: #5c3d00 !important;
+    color: #000000 !important;
 }
 
 .alert-warning i {
-    color: #8b6914 !important;
+    color: #000000 !important;
 }
 
 .alert-success {

@@ -1956,13 +1956,13 @@ select option,
 
 .alert-warning {
     background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
-    color: #5c3d00 !important;
+    color: #000000 !important;
     font-weight: 600 !important;
 }
 
 .alert-danger {
     background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
-    color: #5c2d2d !important;
+    color: #000000 !important;
     font-weight: 600 !important;
 }
 
