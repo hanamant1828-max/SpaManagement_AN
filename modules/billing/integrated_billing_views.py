@@ -289,6 +289,14 @@ def integrated_billing(customer_id=None):
             # Convert UnakiBooking objects to dictionaries for JSON serialization
             for appointment in customer_appointments_query:
                 apt_dict = appointment.to_dict()
+                
+                # CRITICAL FIX: First try to get price from service_id lookup
+                if appointment.service_id:
+                    matching_service = Service.query.get(appointment.service_id)
+                    if matching_service:
+                        apt_dict['service_price'] = float(matching_service.price)
+                        apt_dict['service_duration'] = matching_service.duration
+                
                 # Ensure all required fields are present
                 if not apt_dict.get('service_price'):
                     apt_dict['service_price'] = 0.0
