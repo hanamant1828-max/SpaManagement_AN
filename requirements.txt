@@ -354,3 +354,5 @@ gunicorn
 flask
 gunicorn
 pillow
+opencv-python-headless
+pillow
