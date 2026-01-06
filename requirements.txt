@@ -356,3 +356,6 @@ gunicorn
 pillow
 opencv-python-headless
 pillow
+Pillow
+opencv-python-headless
+Pillow
