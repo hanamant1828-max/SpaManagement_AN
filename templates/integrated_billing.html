@@ -2834,44 +2834,53 @@ function resetCustomerPackages() {
         // CRITICAL: Track cumulative package usage across all services in this invoice
         const cumulativePackageUsage = {};
 
+        // --- Calculate Product GST ---
+        const cgstRate = gstSettings?.cgst_rate || 5;
+        const sgstRate = gstSettings?.sgst_rate || 5;
+        const totalGstRate = cgstRate + sgstRate;
+
+        document.querySelectorAll('.product-row').forEach(row => {
+            const qty = parseFloat(row.querySelector('[name="product_quantities[]"]')?.value || 0);
+            const inclusivePrice = parseFloat(row.querySelector('[name="product_prices[]"]')?.value || 0);
+            
+            if (qty > 0 && inclusivePrice > 0) {
+                const totalRowPrice = inclusivePrice * qty;
+                const baseAmount = totalRowPrice / (1 + (totalGstRate / 100));
+                const gstAmount = totalRowPrice - baseAmount;
+                
+                productBase += baseAmount;
+                productGst += gstAmount;
+                productsSubtotal += totalRowPrice;
+                
+                const gstDisplay = row.querySelector('.row-gst-display');
+                if (gstDisplay) {
+                    gstDisplay.innerHTML = `<small class="text-muted">Base: ₹${baseAmount.toFixed(2)} | GST (${totalGstRate}%): ₹${gstAmount.toFixed(2)}</small>`;
+                }
+            }
+        });
+
         // --- Calculate Services Subtotal ---
+        const serviceGstRate = 18; // Default for services
         console.log('🔄 Calculating services subtotal...');
         document.querySelectorAll('.service-row').forEach((row, index) => {
             const serviceSelect = row.querySelector('select[name="service_ids[]"]');
             const qtyInput = row.querySelector('input[name="service_quantities[]"]');
-            const appointmentIdInput = row.querySelector('input[name="appointment_ids[]"]');
-            const priceInput = row.querySelector('input[name="service_prices[]"]'); // Assuming a hidden price input
             
-            // EDIT MODE: Check for DURABLE row data attributes for saved package data
-            // These data attributes are set by restoreSavedPackageData and persist on the row element
-            const lockedFinalAmount = parseFloat(row.dataset.lockedFinalAmount);
-            const lockedDeduction = parseFloat(row.dataset.lockedDeduction) || 0;
-            const lockedServiceId = row.dataset.lockedServiceId;
-            const lockedQuantity = parseFloat(row.dataset.lockedQuantity);
-            const isPackageLocked = row.dataset.isPackageLocked === 'true';
-            
-            // FALLBACK: Also check hidden inputs (for backward compatibility)
-            const savedFinalAmountInput = row.querySelector('input[name="saved_final_amounts[]"]');
-            const savedDeductionInput = row.querySelector('input[name="deduction_amounts[]"]');
-            const savedQuantityInput = row.querySelector('input[name="saved_quantities[]"]');
-            const savedServiceIdInput = row.querySelector('input[name="saved_service_ids[]"]');
-            
-            // Use row data attributes first (more durable), fall back to hidden inputs
-            const savedFinalAmount = !isNaN(lockedFinalAmount) ? lockedFinalAmount : parseFloat(savedFinalAmountInput?.value);
-            const savedDeduction = isPackageLocked ? lockedDeduction : (parseFloat(savedDeductionInput?.value) || 0);
-            const savedQuantity = !isNaN(lockedQuantity) ? lockedQuantity : parseFloat(savedQuantityInput?.value);
-            const savedServiceId = lockedServiceId || savedServiceIdInput?.value;
-            
-            // Check for saved package data using durable row flag
-            const hasSavedPackageData = isPackageLocked && !isNaN(savedFinalAmount);
-
             const serviceId = serviceSelect?.value;
             const quantity = parseFloat(qtyInput?.value) || 0;
-            let basePrice = parseFloat(serviceSelect.selectedOptions[0]?.dataset.price) || 0; // Get base price from dataset initially
+            let basePrice = parseFloat(serviceSelect?.selectedOptions[0]?.dataset.price) || 0;
 
-            // EDIT MODE FIX: If we have saved package data and service/quantity haven't changed, use saved values
-            // Note: savedFinalAmount can be 0 for fully covered/free services - this is valid
-            if (hasSavedPackageData && !isNaN(savedFinalAmount)) {
+            if (serviceId && quantity > 0) {
+                const rowTotal = basePrice * quantity;
+                const taxableValue = rowTotal / (1 + (serviceGstRate / 100));
+                const serviceGst = rowTotal - taxableValue;
+
+                servicesSubtotal += rowTotal;
+                // We add to grand totals later, but tracking base/gst for display
+                productBase += taxableValue; // Reusing these for total display
+                productGst += serviceGst;
+            }
+        });
                 // Compare current values against LOCKED values from row data attributes
                 const sameService = serviceId === savedServiceId;
                 const sameQuantity = !isNaN(savedQuantity) && Math.abs(quantity - savedQuantity) < 0.01;
@@ -4460,25 +4469,37 @@ function resetCustomerPackages() {
     const previewData = {
         client_name: document.getElementById('client_id').options[document.getElementById('client_id').selectedIndex]?.text.split(' - ')[0].trim() || 'Walk-in Customer',
         client_phone: document.getElementById('client_id').options[document.getElementById('client_id').selectedIndex]?.text.split(' - ')[1]?.trim() || 'N/A',
-        items: [...services.map(s => ({
-            name: s.service_name,
-            quantity: s.quantity,
-            price: s.price,
-            hsn: '998311',
-            taxable_value: (s.price * s.quantity) / 1.18,
-            gst_rate: 18,
-            gst_amount: (s.price * s.quantity) - ((s.price * s.quantity) / 1.18),
-            total: s.price * s.quantity
-        })), ...products.map(p => ({
-            name: p.product_name,
-            quantity: p.quantity,
-            price: p.price,
-            hsn: '----',
-            taxable_value: (p.price * p.quantity) / 1.10,
-            gst_rate: 10,
-            gst_amount: (p.price * p.quantity) - ((p.price * p.quantity) / 1.10),
-            total: p.price * p.quantity
-        }))],
+        items: [...services.map(s => {
+            const total = s.price * s.quantity;
+            const rate = 18; // Default service rate
+            const taxable = total / (1 + (rate / 100));
+            return {
+                name: s.service_name,
+                quantity: s.quantity,
+                price: s.price,
+                hsn: '998311',
+                taxable_value: taxable,
+                gst_rate: rate,
+                gst_amount: total - taxable,
+                total: total
+            };
+        }), ...products.map(p => {
+            const total = p.price * p.quantity;
+            const cgst = gstSettings?.cgst_rate || 5;
+            const sgst = gstSettings?.sgst_rate || 5;
+            const rate = cgst + sgst;
+            const taxable = total / (1 + (rate / 100));
+            return {
+                name: p.product_name,
+                quantity: p.quantity,
+                price: p.price,
+                hsn: '----',
+                taxable_value: taxable,
+                gst_rate: rate,
+                gst_amount: total - taxable,
+                total: total
+            };
+        })],
         subtotal: parseFloat(document.getElementById('subtotalAmount')?.textContent.replace(/[₹,]/g, '') || 0),
         cgst_total: parseFloat(document.getElementById('cgstAmount')?.textContent.replace(/[₹,]/g, '') || 0),
         sgst_total: parseFloat(document.getElementById('sgstAmount')?.textContent.replace(/[₹,]/g, '') || 0),
