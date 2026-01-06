@@ -2578,6 +2578,60 @@ def print_professional_invoice(invoice_id):
         # Fallback to HTML view if PDF generation fails
         return html_string
 
+@app.route('/api/invoice-preview-gst', methods=['POST'])
+@login_required
+def preview_invoice_gst():
+    """Generate professional invoice preview with GST breakdown"""
+    if not current_user.is_active:
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        from modules.settings.settings_queries import get_gst_settings
+        import datetime # Local import to avoid conflicts
+
+        data = request.json or {}
+        gst_config = get_gst_settings()
+
+        # Extract data from request
+        client_name = data.get('client_name', 'Customer Name')
+        client_phone = data.get('client_phone', 'N/A')
+        
+        # In a real scenario, we'd fetch business settings from DB
+        business_settings = {
+            'business_name': 'BHARATI',
+            'gstin': '22AAAAA0000A1Z5',
+            'business_phone': '+917022513581'
+        }
+
+        # Process items to ensure decimal precision in template
+        items = data.get('items', [])
+        for item in items:
+            item['price'] = float(item.get('price', 0))
+            item['taxable_value'] = float(item.get('taxable_value', 0))
+            item['gst_amount'] = float(item.get('gst_amount', 0))
+            item['total'] = float(item.get('total', 0))
+            item['gst_rate'] = item.get('gst_rate', 18)
+
+        preview_html = render_template('invoice_preview_gst.html',
+                             business_name=business_settings['business_name'],
+                             gstin=business_settings['gstin'],
+                             business_phone=business_settings['business_phone'],
+                             invoice_number='PREVIEW',
+                             date=datetime.datetime.now().strftime('%d-%m-%Y'),
+                             client_name=client_name,
+                             client_phone=client_phone,
+                             items=items,
+                             subtotal=float(data.get('subtotal', 0)),
+                             cgst_total=float(data.get('cgst_total', 0)),
+                             sgst_total=float(data.get('sgst_total', 0)),
+                             grand_total=float(data.get('grand_total', 0)),
+                             round_off=float(data.get('round_off', 0)))
+
+        return jsonify({'success': True, 'preview_html': preview_html})
+    except Exception as e:
+        app.logger.error(f"ERROR: Preview GST failed: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/api/invoice-preview', methods=['POST'])
 @login_required
 def generate_invoice_preview():

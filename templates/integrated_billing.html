@@ -4458,23 +4458,38 @@ function resetCustomerPackages() {
 
     // Prepare JSON payload
     const previewData = {
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        is_interstate: isInterstate,
-        services: services,
-        products: products,
-        services_subtotal: servicesSubtotal,
-        products_subtotal: productsSubtotal,
-        package_deductions: packageDeductions,
-        discount_amount: discountAmount,
-        additional_charges: additionalCharges,
-        tips: tips
+        client_name: document.getElementById('client_id').options[document.getElementById('client_id').selectedIndex]?.text.split(' - ')[0].trim() || 'Walk-in Customer',
+        client_phone: document.getElementById('client_id').options[document.getElementById('client_id').selectedIndex]?.text.split(' - ')[1]?.trim() || 'N/A',
+        items: [...services.map(s => ({
+            name: s.service_name,
+            quantity: s.quantity,
+            price: s.price,
+            hsn: '998311',
+            taxable_value: (s.price * s.quantity) / 1.18,
+            gst_rate: 18,
+            gst_amount: (s.price * s.quantity) - ((s.price * s.quantity) / 1.18),
+            total: s.price * s.quantity
+        })), ...products.map(p => ({
+            name: p.product_name,
+            quantity: p.quantity,
+            price: p.price,
+            hsn: '----',
+            taxable_value: (p.price * p.quantity) / 1.10,
+            gst_rate: 10,
+            gst_amount: (p.price * p.quantity) - ((p.price * p.quantity) / 1.10),
+            total: p.price * p.quantity
+        }))],
+        subtotal: parseFloat(document.getElementById('subtotalAmount')?.textContent.replace(/[₹,]/g, '') || 0),
+        cgst_total: parseFloat(document.getElementById('cgstAmount')?.textContent.replace(/[₹,]/g, '') || 0),
+        sgst_total: parseFloat(document.getElementById('sgstAmount')?.textContent.replace(/[₹,]/g, '') || 0),
+        grand_total: parseFloat(document.getElementById('grandTotal')?.textContent.replace(/[₹,]/g, '') || 0),
+        round_off: 0
     };
 
     console.log('📊 Preview data:', previewData);
 
     // Call the preview API endpoint
-    fetch('/api/invoice-preview', {
+    fetch('/api/invoice-preview-gst', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
