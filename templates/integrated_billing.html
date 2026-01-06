@@ -1001,6 +1001,12 @@ textarea.form-control {
                                         <label class="form-label">Price</label>
                                         <input type="number" class="form-control" name="product_prices[]" placeholder="₹0.00" min="0" step="0.01" oninput="updateCalculations()">
                                     </div>
+                                    <div class="product-gst-breakdown" style="display:none; font-size: 0.7rem; margin-top: -10px;">
+                                        <small class="text-muted">
+                                            Base: ₹<span class="product-base-price">0.00</span> | 
+                                            Tax: ₹<span class="product-total-gst">0.00</span>
+                                        </small>
+                                    </div>
                                 </div>
                                 <div class="col-md-1">
                                     <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)" style="display:none;">
@@ -1140,9 +1146,17 @@ textarea.form-control {
                     <div class="summary-row">
                         <span class="summary-label">
                             <i class="fas fa-box"></i>
-                            Products
+                            Products (Base)
                         </span>
-                        <span class="summary-value" id="productsSubtotal">₹0.00</span>
+                        <span class="summary-value" id="productsBaseAmount">₹0.00</span>
+                    </div>
+
+                    <div class="summary-row tax-row">
+                        <span class="summary-label">
+                            <i class="fas fa-percentage"></i>
+                            Products GST
+                        </span>
+                        <span class="summary-value" id="productsGstAmount">₹0.00</span>
                     </div>
 
                     <div class="summary-row subtotal-row">
@@ -1286,6 +1300,24 @@ let GSTSettings = {
     state: '',
     enabled: false
 };
+
+// ==========================================
+// GST CALCULATIONS
+// ==========================================
+function calculateGSTFromInclusive(inclusivePrice, gstRate = 18) {
+    const basePrice = inclusivePrice / (1 + gstRate / 100);
+    const totalGst = inclusivePrice - basePrice;
+    const sgst = totalGst / 2;
+    const cgst = totalGst / 2;
+    
+    return {
+        inclusivePrice: Math.round(inclusivePrice),
+        basePrice: Math.round(basePrice),
+        sgst: Math.round(sgst),
+        cgst: Math.round(cgst),
+        totalGst: Math.round(totalGst)
+    };
+}
 
 // ==========================================
 // INITIALIZATION
@@ -2399,7 +2431,14 @@ function resetCustomerPackages() {
 
         // Set price from batch
         if (priceInput && (firstBatch.selling_price || firstBatch.unit_price)) {
-            priceInput.value = parseFloat(firstBatch.selling_price || firstBatch.unit_price).toFixed(2);
+            const sellingPrice = parseFloat(firstBatch.selling_price || firstBatch.unit_price);
+            priceInput.value = sellingPrice.toFixed(2);
+            
+            // Store GST breakdown data on the row
+            const gstData = calculateGSTFromInclusive(sellingPrice);
+            row.dataset.basePrice = gstData.basePrice;
+            row.dataset.sgstAmount = gstData.sgst;
+            row.dataset.cgstAmount = gstData.cgst;
         } else if (priceInput) {
             priceInput.value = '0.00'; // Default to 0 if no price found
         }
@@ -3011,20 +3050,28 @@ function resetCustomerPackages() {
             }
         });
 
-        // --- Calculate Products Subtotal ---
-        console.log('🔄 Calculating products subtotal...');
+        // --- Calculate Products Subtotal (GST Inclusive) ---
+        let productBaseTotal = 0;
+        let productSgstTotal = 0;
+        let productCgstTotal = 0;
+
         document.querySelectorAll('.product-row').forEach((row, index) => {
             const qtyInput = row.querySelector('input[name="product_quantities[]"]');
             const priceInput = row.querySelector('input[name="product_prices[]"]');
             const quantity = parseFloat(qtyInput?.value) || 0;
-            const price = parseFloat(priceInput?.value) || 0; // Price entered by user or from batch
+            const gstInclusivePrice = parseFloat(priceInput?.value) || 0;
 
-            if (quantity > 0 && price > 0) {
-                const itemTotal = price * quantity;
-                productsSubtotal += itemTotal;
-                console.log('➕ Product row added to subtotal:', { quantity, price, itemTotal });
-            } else if (qtyInput && priceInput && (quantity <= 0 || price <= 0)) {
-                 console.log('⚠️ Product row skipped due to zero quantity or price:', { quantity, price });
+            if (quantity > 0 && gstInclusivePrice > 0) {
+                const lineTotal = gstInclusivePrice * quantity;
+                const gstData = calculateGSTFromInclusive(lineTotal);
+                
+                productBaseTotal += gstData.basePrice;
+                productSgstTotal += gstData.sgst;
+                productCgstTotal += gstData.cgst;
+                productsSubtotal += lineTotal; // Keep total same
+                console.log('➕ Product row added to subtotal:', { quantity, gstInclusivePrice, lineTotal });
+            } else if (qtyInput && priceInput && (quantity <= 0 || gstInclusivePrice <= 0)) {
+                 console.log('⚠️ Product row skipped due to zero quantity or price:', { quantity, gstInclusivePrice });
             }
         });
 
@@ -3049,19 +3096,19 @@ function resetCustomerPackages() {
         // --- Calculate Taxable Amount ---
         const taxableAmountAfterTax = Math.max(0, taxableAmountBeforeDiscount - discountAmount);
 
-        // --- Calculate GST (Services INCLUSIVE, Products NO GST - MRP is final) ---
+        // --- Calculate GST (Both Services & Products are GST INCLUSIVE) ---
         // Use dynamic GST rates from database configuration
         const gstRate = (GSTSettings.cgst_rate + GSTSettings.sgst_rate) / 100; // Total GST rate
 
-        // For services: GST is INCLUSIVE (extract from price)
+        // Services GST extraction
         const serviceBase = servicesSubtotal / (1 + gstRate);
         const serviceGst = servicesSubtotal - serviceBase;
 
-        // For products: NO GST (MRP is final price, already includes all taxes)
-        const productBase = productsSubtotal;
-        const productGst = 0;
+        // Products GST extraction (NEW)
+        const productBase = productsSubtotal / (1 + gstRate);
+        const productGst = productsSubtotal - productBase;
 
-        // Total GST before discount adjustment (only from services)
+        // Total GST before discount adjustment
         let totalGst = serviceGst + productGst;
 
         // Adjust GST proportionally if discount is applied
@@ -3084,6 +3131,10 @@ function resetCustomerPackages() {
 
         // --- Update Display ---
         document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
+        if (document.getElementById('productsBaseAmount')) {
+            document.getElementById('productsBaseAmount').textContent = `₹${productBase.toFixed(2)}`;
+            document.getElementById('productsGstAmount').textContent = `₹${productGst.toFixed(2)}`;
+        }
         document.getElementById('productsSubtotal').textContent = `₹${productsSubtotal.toFixed(2)}`;
         document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
         document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`;
