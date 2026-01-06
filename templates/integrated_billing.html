@@ -2377,6 +2377,7 @@ function resetCustomerPackages() {
     }
 
     function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
+        const row = batchSelect.closest('.product-row'); // Get the row context
         // Filter available batches and sort by expiry (FIFO)
         const availableBatches = batches
             .filter(b => b.qty_available > 0)
@@ -3130,21 +3131,43 @@ function resetCustomerPackages() {
         const grandTotal = taxableAmountAfterTax + totalGst + additionalCharges + tips;
 
         // --- Update Display ---
-        document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
+        if (document.getElementById('servicesSubtotal')) {
+            document.getElementById('servicesSubtotal').textContent = `₹${servicesSubtotal.toFixed(2)}`;
+        }
         if (document.getElementById('productsBaseAmount')) {
             document.getElementById('productsBaseAmount').textContent = `₹${productBase.toFixed(2)}`;
             document.getElementById('productsGstAmount').textContent = `₹${productGst.toFixed(2)}`;
         }
-        document.getElementById('productsSubtotal').textContent = `₹${productsSubtotal.toFixed(2)}`;
-        document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
-        document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`;
-        document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
-        document.getElementById('taxableAmount').textContent = `₹${taxableAmountAfterTax.toFixed(2)}`;
-        document.getElementById('cgstAmount').textContent = `₹${cgstAmount.toFixed(2)}`;
-        document.getElementById('sgstAmount').textContent = `₹${sgstAmount.toFixed(2)}`;
-        document.getElementById('additionalCharges').textContent = `₹${additionalCharges.toFixed(2)}`;
-        document.getElementById('tipsDisplay').textContent = `₹${tips.toFixed(2)}`;
-        document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+        if (document.getElementById('productsSubtotal')) {
+            document.getElementById('productsSubtotal').textContent = `₹${productsSubtotal.toFixed(2)}`;
+        }
+        if (document.getElementById('subtotalAmount')) {
+            document.getElementById('subtotalAmount').textContent = `₹${subtotal.toFixed(2)}`;
+        }
+        if (document.getElementById('packageDeductions')) {
+            document.getElementById('packageDeductions').textContent = `-₹${packageDeductions.toFixed(2)}`;
+        }
+        if (document.getElementById('discountAmount')) {
+            document.getElementById('discountAmount').textContent = `-₹${discountAmount.toFixed(2)}`;
+        }
+        if (document.getElementById('taxableAmount')) {
+            document.getElementById('taxableAmount').textContent = `₹${taxableAmountAfterTax.toFixed(2)}`;
+        }
+        if (document.getElementById('cgstAmount')) {
+            document.getElementById('cgstAmount').textContent = `₹${cgstAmount.toFixed(2)}`;
+        }
+        if (document.getElementById('sgstAmount')) {
+            document.getElementById('sgstAmount').textContent = `₹${sgstAmount.toFixed(2)}`;
+        }
+        if (document.getElementById('additionalCharges')) {
+            document.getElementById('additionalCharges').textContent = `₹${additionalCharges.toFixed(2)}`;
+        }
+        if (document.getElementById('tipsDisplay')) {
+            document.getElementById('tipsDisplay').textContent = `₹${tips.toFixed(2)}`;
+        }
+        if (document.getElementById('grandTotal')) {
+            document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+        }
 
         console.log('📊 Totals Updated:', {
             servicesSubtotal: servicesSubtotal.toFixed(2),
