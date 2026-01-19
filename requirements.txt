@@ -359,3 +359,7 @@ pillow
 Pillow
 opencv-python-headless
 Pillow
+insightface
+onnxruntime
+insightface==0.7.3
+onnxruntime-openvino
