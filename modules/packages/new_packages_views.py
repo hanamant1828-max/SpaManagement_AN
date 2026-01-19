@@ -570,12 +570,24 @@ def create_student_offer():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@app.route('/packages/api/student-offers/<int:offer_id>', methods=['GET'])
+@app.route('/packages/api/student-offers/<int:offer_id>', methods=['GET', 'PUT'])
 @login_required
 def packages_api_get_student_offer(offer_id):
-    """Get student offer by ID - packages prefix route"""
+    """Get or Update student offer by ID - packages prefix route"""
     try:
-        from modules.packages.new_packages_queries import get_student_offer_by_id
+        from modules.packages.new_packages_queries import get_student_offer_by_id, update_student_offer
+        
+        if request.method == 'PUT':
+            data = request.get_json()
+            if not data:
+                return jsonify({'success': False, 'error': 'No data provided'}), 400
+                
+            offer = update_student_offer(offer_id, data)
+            if offer:
+                return jsonify({'success': True, 'message': 'Student offer updated successfully'})
+            else:
+                return jsonify({'success': False, 'error': 'Failed to update student offer'}), 500
+
         offer = get_student_offer_by_id(offer_id)
 
         if not offer:
