@@ -1569,11 +1569,20 @@ def create_professional_invoice():
                         description=service.description or '',
                         quantity=service_data['quantity'],
                         unit_price=service.price,
-                        original_amount=original_service_price,
-                        final_amount=original_service_price,
+                        original_amount=service_data.get('base_amount', service.price * service_data['quantity']),
+                        final_amount=service_data.get('base_amount', service.price * service_data['quantity']) + service_data.get('tax_amount', 0),
                         staff_revenue_price=original_service_price,  # ALWAYS store original price for staff revenue/commission
                         staff_id=staff_id,  # Store staff ID
-                        staff_name=staff_name  # Store staff name for quick reference
+                        staff_name=staff_name,  # Store staff name for quick reference
+                        # GST fields
+                        gst_percentage=service_data.get('gst_percentage', service.gst_percentage or 18.0),
+                        cgst_rate=(service_data.get('gst_percentage', service.gst_percentage or 18.0) / 2) if not is_interstate else 0,
+                        sgst_rate=(service_data.get('gst_percentage', service.gst_percentage or 18.0) / 2) if not is_interstate else 0,
+                        igst_rate=service_data.get('gst_percentage', service.gst_percentage or 18.0) if is_interstate else 0,
+                        gst_amount=service_data.get('tax_amount', 0),
+                        cgst_amount=service_data.get('cgst_amount', 0),
+                        sgst_amount=service_data.get('sgst_amount', 0),
+                        igst_amount=service_data.get('igst_amount', 0)
                     )
                     db.session.add(item)
                     db.session.flush()  # Get item.id
@@ -2447,10 +2456,10 @@ def update_integrated_invoice(invoice_id):
                     staff_id=staff_id,
                     staff_name=staff_name,
                     # GST fields
-                    gst_percentage=service_data.get('gst_percentage', 18.0),
-                    cgst_rate=(service_data.get('gst_percentage', 18.0) / 2) if not is_interstate else 0,
-                    sgst_rate=(service_data.get('gst_percentage', 18.0) / 2) if not is_interstate else 0,
-                    igst_rate=service_data.get('gst_percentage', 18.0) if is_interstate else 0,
+                    gst_percentage=service_data.get('gst_percentage', service.gst_percentage or 18.0),
+                    cgst_rate=(service_data.get('gst_percentage', service.gst_percentage or 18.0) / 2) if not is_interstate else 0,
+                    sgst_rate=(service_data.get('gst_percentage', service.gst_percentage or 18.0) / 2) if not is_interstate else 0,
+                    igst_rate=service_data.get('gst_percentage', service.gst_percentage or 18.0) if is_interstate else 0,
                     gst_amount=service_data.get('tax_amount', 0),
                     cgst_amount=service_data.get('cgst_amount', 0),
                     sgst_amount=service_data.get('sgst_amount', 0),
