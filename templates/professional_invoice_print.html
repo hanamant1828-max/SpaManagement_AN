@@ -513,12 +513,8 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td>CGST ({{ "%.1f"|format(tax_details.get('cgst_rate', 0)) }}%)</td>
-                            <td>₹{{ "%.2f"|format(tax_details.get('cgst_amount', 0)) }}</td>
-                        </tr>
-                        <tr>
-                            <td>SGST ({{ "%.1f"|format(tax_details.get('sgst_rate', 0)) }}%)</td>
-                            <td>₹{{ "%.2f"|format(tax_details.get('sgst_amount', 0)) }}</td>
+                            <td>Tax ({{ "%.1f"|format(tax_details.get('cgst_rate', 0) + tax_details.get('sgst_rate', 0)) }}%)</td>
+                            <td>₹{{ "%.2f"|format(tax_details.get('cgst_amount', 0) + tax_details.get('sgst_amount', 0)) }}</td>
                         </tr>
                         {% endif %}
                         {% if invoice.tips_amount > 0 %}

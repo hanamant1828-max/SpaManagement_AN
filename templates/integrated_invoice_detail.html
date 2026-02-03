@@ -278,24 +278,15 @@
                         </div>
 
                         <!-- Tax Details -->
-                        {% if invoice.cgst_amount > 0 %}
-                        <div class="row mb-1">
-                            <div class="col-8">CGST ({{ "%.1f"|format(invoice.cgst_rate) }}%):</div>
-                            <div class="col-4 text-end">₹{{ "{:.2f}".format(invoice.cgst_amount) }}</div>
-                        </div>
-                        {% endif %}
-
-                        {% if invoice.sgst_amount > 0 %}
-                        <div class="row mb-1">
-                            <div class="col-8">SGST ({{ "%.1f"|format(invoice.sgst_rate) }}%):</div>
-                            <div class="col-4 text-end">₹{{ "{:.2f}".format(invoice.sgst_amount) }}</div>
-                        </div>
-                        {% endif %}
-
                         {% if invoice.igst_amount > 0 %}
                         <div class="row mb-1">
                             <div class="col-8">IGST ({{ "%.1f"|format(invoice.igst_rate) }}%):</div>
                             <div class="col-4 text-end">₹{{ "{:.2f}".format(invoice.igst_amount) }}</div>
+                        </div>
+                        {% elif invoice.cgst_amount > 0 or invoice.sgst_amount > 0 %}
+                        <div class="row mb-1">
+                            <div class="col-8">Tax ({{ "%.1f"|format((invoice.cgst_rate or 0) + (invoice.sgst_rate or 0)) }}%):</div>
+                            <div class="col-4 text-end">₹{{ "{:.2f}".format((invoice.cgst_amount or 0) + (invoice.sgst_amount or 0)) }}</div>
                         </div>
                         {% endif %}
 
