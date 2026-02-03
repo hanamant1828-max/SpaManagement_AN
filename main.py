@@ -6,6 +6,7 @@ from modules.billing.billing_reports_views import *
 from modules.billing.staff_revenue_report_views import *
 from modules.billing.client_revenue_report_views import *
 from modules.billing.service_revenue_report_views import *
+from modules.billing.gst_invoice_views import *
 print("✅ Billing reports views imported")
 
 from modules.clients.clients_views import *

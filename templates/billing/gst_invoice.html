@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4 mb-5 no-print-padding">
+    <div class="card shadow-sm invoice-container" id="printable-invoice">
+        <div class="card-body p-0">
+            <!-- Header Section -->
+            <div class="row m-0 border-bottom">
+                <div class="col-8 p-3 border-right">
+                    <div class="form-group mb-1">
+                        <label class="small font-weight-bold mb-0">Company/Seller Name:</label>
+                        <input type="text" class="form-control form-control-sm border-0 p-0 h-auto font-weight-bold" value="Your Company Name" placeholder="Enter Company Name">
+                    </div>
+                    <div class="form-group mb-1">
+                        <label class="small font-weight-bold mb-0">Address:</label>
+                        <textarea class="form-control form-control-sm border-0 p-0 h-auto" rows="2" placeholder="Enter Address">123 Business Avenue, Suite 100, City, State - PIN</textarea>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-6">
+                            <div class="form-group mb-1">
+                                <label class="small font-weight-bold mb-0">Phone No.:</label>
+                                <input type="text" class="form-control form-control-sm border-0 p-0 h-auto" value="+91 9876543210">
+                            </div>
+                            <div class="form-group mb-1">
+                                <label class="small font-weight-bold mb-0">Email ID:</label>
+                                <input type="email" class="form-control form-control-sm border-0 p-0 h-auto" value="contact@company.com">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group mb-1">
+                                <label class="small font-weight-bold mb-0">GSTIN:</label>
+                                <input type="text" class="form-control form-control-sm border-0 p-0 h-auto font-weight-bold" value="27ABCDE1234F1Z5">
+                            </div>
+                            <div class="form-group mb-1">
+                                <label class="small font-weight-bold mb-0">State:</label>
+                                <input type="text" class="form-control form-control-sm border-0 p-0 h-auto" value="Maharashtra (27)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4 d-flex align-items-center justify-content-center p-3">
+                    <div class="text-center border p-4 w-100 logo-placeholder">
+                        <h2 class="text-muted mb-0">LOGO</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Title Section -->
+            <div class="bg-invoice-header text-center py-2 border-bottom">
+                <h2 class="mb-0 font-weight-bold text-uppercase">Tax Invoice</h2>
+            </div>
+
+            <!-- Customer & Invoice Info -->
+            <div class="row m-0 border-bottom">
+                <div class="col-6 p-3 border-right">
+                    <h6 class="font-weight-bold text-uppercase border-bottom pb-1">Bill To:</h6>
+                    <div class="form-group mb-1 row">
+                        <label class="col-3 col-form-label col-form-label-sm font-weight-bold pr-0">Name:</label>
+                        <div class="col-9">
+                            <input type="text" class="form-control form-control-sm border-0 p-0 h-auto" placeholder="Customer Name">
+                        </div>
+                    </div>
+                    <div class="form-group mb-1 row">
+                        <label class="col-3 col-form-label col-form-label-sm font-weight-bold pr-0">Address:</label>
+                        <div class="col-9">
+                            <textarea class="form-control form-control-sm border-0 p-0 h-auto" rows="2" placeholder="Customer Address"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-group mb-1 row mt-2 border-top pt-2">
+                        <label class="col-4 col-form-label col-form-label-sm font-weight-bold pr-0">Contact No.:</label>
+                        <div class="col-8">
+                            <input type="text" class="form-control form-control-sm border-0 p-0 h-auto" placeholder="Phone Number">
+                        </div>
+                    </div>
+                    <div class="form-group mb-1 row">
+                        <label class="col-4 col-form-label col-form-label-sm font-weight-bold pr-0">GSTIN No.:</label>
+                        <div class="col-8">
+                            <input type="text" class="form-control form-control-sm border-0 p-0 h-auto" placeholder="Optional GSTIN">
+                        </div>
+                    </div>
+                    <div class="form-group mb-0 row">
+                        <label class="col-4 col-form-label col-form-label-sm font-weight-bold pr-0">State:</label>
+                        <div class="col-8">
+                            <input type="text" class="form-control form-control-sm border-0 p-0 h-auto" placeholder="State">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 p-3">
+                    <h6 class="font-weight-bold text-uppercase border-bottom pb-1">Shipping To:</h6>
+                    <div class="form-group mb-1 row">
+                        <div class="col-12">
+                            <textarea class="form-control form-control-sm border-0 p-0 h-auto" rows="3" placeholder="Same as billing address if blank"></textarea>
+                        </div>
+                    </div>
+                    <div class="row mt-3 border-top pt-2">
+                        <div class="col-6 border-right">
+                            <label class="small font-weight-bold mb-0">Invoice No.:</label>
+                            <input type="text" class="form-control form-control-sm border-0 p-0 h-auto font-weight-bold" value="INV-2024-0001">
+                        </div>
+                        <div class="col-6">
+                            <label class="small font-weight-bold mb-0">Date:</label>
+                            <input type="text" class="form-control form-control-sm border-0 p-0 h-auto" id="current-date" value="">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="table-responsive">
+                <table class="table table-bordered mb-0" id="invoice-items">
+                    <thead class="bg-invoice-header text-center">
+                        <tr>
+                            <th width="5%">#</th>
+                            <th width="35%">Item name</th>
+                            <th width="10%">Quantity</th>
+                            <th width="10%">Unit</th>
+                            <th width="10%">Price/Unit (₹)</th>
+                            <th width="10%">Discount (₹)</th>
+                            <th width="10%">GST %</th>
+                            <th width="10%">Amount (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Initial 5 rows -->
+                        {% for i in range(1, 6) %}
+                        <tr>
+                            <td class="text-center">{{ i }}</td>
+                            <td class="p-0"><input type="text" class="form-control form-control-sm border-0 rounded-0 item-name" placeholder="Item {{ i }}"></td>
+                            <td class="p-0"><input type="number" class="form-control form-control-sm border-0 rounded-0 text-center item-qty" value="0" step="0.01"></td>
+                            <td class="p-0"><input type="text" class="form-control form-control-sm border-0 rounded-0 text-center item-unit" placeholder="Pcs"></td>
+                            <td class="p-0"><input type="number" class="form-control form-control-sm border-0 rounded-0 text-right item-price" value="0.00" step="0.01"></td>
+                            <td class="p-0"><input type="number" class="form-control form-control-sm border-0 rounded-0 text-right item-discount" value="0" step="0.01"></td>
+                            <td class="p-0">
+                                <select class="form-control form-control-sm border-0 rounded-0 item-gst">
+                                    <option value="0">0%</option>
+                                    <option value="5">5%</option>
+                                    <option value="12">12%</option>
+                                    <option value="18" selected>18%</option>
+                                    <option value="28">28%</option>
+                                </select>
+                            </td>
+                            <td class="p-0 text-right pr-2 vertical-center font-weight-bold item-total">0.00</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-light font-weight-bold">
+                            <td colspan="2" class="text-center text-uppercase">Total</td>
+                            <td class="text-center" id="total-qty">0</td>
+                            <td></td>
+                            <td></td>
+                            <td class="text-right pr-2" id="total-discount">0.00</td>
+                            <td class="text-right pr-2" id="total-gst-amount">0.00</td>
+                            <td class="text-right pr-2" id="grand-total">0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Bottom Section -->
+            <div class="row m-0 border-top">
+                <div class="col-7 p-3 border-right">
+                    <div class="mb-3">
+                        <label class="small font-weight-bold d-block">Amount in words:</label>
+                        <div id="amount-in-words" class="p-2 border rounded bg-light font-italic small min-height-40">Zero Rupees Only</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="small font-weight-bold">Terms & Conditions</label>
+                        <textarea class="form-control form-control-sm border-0 bg-transparent p-0" rows="4">1. Goods once sold will not be taken back.
+2. Subject to City Jurisdiction.
+3. Payment should be made within 15 days.</textarea>
+                    </div>
+                </div>
+                <div class="col-5 p-0">
+                    <table class="table table-sm table-bordered mb-0 border-0">
+                        <tr>
+                            <td class="bg-invoice-subtotal font-weight-bold text-white pl-3" width="60%">Sub Total:</td>
+                            <td class="text-right pr-3 font-weight-bold bg-invoice-subtotal text-white" id="summary-subtotal">0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="pl-3">Discount:</td>
+                            <td class="text-right pr-3" id="summary-discount">0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="pl-3">SGST:</td>
+                            <td class="text-right pr-3" id="summary-sgst">0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="pl-3">CGST:</td>
+                            <td class="text-right pr-3" id="summary-cgst">0.00</td>
+                        </tr>
+                        <tr class="h5">
+                            <td class="pl-3 font-weight-bold border-top-2">Total:</td>
+                            <td class="text-right pr-3 font-weight-bold border-top-2" id="summary-total">0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="pl-3">Received:</td>
+                            <td class="p-0"><input type="number" class="form-control form-control-sm border-0 rounded-0 text-right pr-3 font-weight-bold" id="amount-received" value="0.00" step="0.01"></td>
+                        </tr>
+                        <tr class="bg-light">
+                            <td class="pl-3 font-weight-bold">Balance:</td>
+                            <td class="text-right pr-3 font-weight-bold" id="amount-balance">0.00</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Footer Signatures -->
+            <div class="row m-0 p-3 mt-4 border-top">
+                <div class="col-6 pt-5">
+                    <div class="text-center pt-3 border-top w-50 small">Customer Signature</div>
+                </div>
+                <div class="col-6 text-right pt-5">
+                    <div class="d-inline-block text-center pt-3 border-top w-75 small">
+                        <strong>For Your Company Name</strong><br>
+                        Company seal and Sign
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="row mt-4 no-print">
+        <div class="col-12 text-center">
+            <button class="btn btn-secondary mr-2" onclick="addRow()">Add Row</button>
+            <button class="btn btn-primary btn-lg px-5" onclick="window.print()">
+                <i class="fa fa-print"></i> Print Invoice
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .invoice-container {
+        border: 2px solid #333 !important;
+        max-width: 900px;
+        margin: 0 auto;
+        color: #000;
+        background-color: #fff;
+    }
+    .bg-invoice-header {
+        background-color: #f8b4b4 !important; /* Matching the reddish pink in image */
+        color: #000 !important;
+    }
+    .bg-invoice-subtotal {
+        background-color: #ff9900 !important; /* Matching orange in image */
+        color: #fff !important;
+    }
+    .logo-placeholder {
+        border: 2px dashed #ccc !important;
+        min-height: 120px;
+    }
+    .form-control:focus {
+        box-shadow: none;
+        border-bottom: 1px solid #007bff !important;
+    }
+    .border-right { border-right: 1px solid #333 !important; }
+    .border-bottom { border-bottom: 1px solid #333 !important; }
+    .border-top { border-top: 1px solid #333 !important; }
+    .border-top-2 { border-top: 2px solid #333 !important; }
+    table.table-bordered { border: 1px solid #333 !important; }
+    table.table-bordered td, table.table-bordered th { border: 1px solid #333 !important; }
+    
+    .vertical-center {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        height: 100%;
+        min-height: 31px;
+    }
+    
+    .min-height-40 { min-height: 40px; }
+
+    @media print {
+        body * { visibility: hidden; }
+        #printable-invoice, #printable-invoice * { visibility: visible; }
+        #printable-invoice {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            border: none !important;
+        }
+        .no-print { display: none !important; }
+        .card { border: none !important; box-shadow: none !important; }
+        .no-print-padding { padding: 0 !important; margin: 0 !important; }
+        input, select, textarea { 
+            border: none !important; 
+            background: transparent !important;
+            padding: 0 !important;
+            appearance: none;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set current date
+    const now = new Date();
+    document.getElementById('current-date').value = now.toLocaleDateString('en-GB');
+
+    // Add event listeners for calculations
+    const table = document.getElementById('invoice-items');
+    table.addEventListener('input', calculateInvoice);
+    document.getElementById('amount-received').addEventListener('input', calculateInvoice);
+
+    function calculateInvoice() {
+        let totalQty = 0;
+        let totalDiscount = 0;
+        let totalGstAmount = 0;
+        let subTotal = 0; // Gross total before discounts and tax
+
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+            const price = parseFloat(row.querySelector('.item-price').value) || 0;
+            const discount = parseFloat(row.querySelector('.item-discount').value) || 0;
+            const gstPercent = parseFloat(row.querySelector('.item-gst').value) || 0;
+
+            if (qty > 0 && price > 0) {
+                const basePrice = qty * price;
+                const taxableValue = basePrice - discount;
+                const gstAmount = (taxableValue * gstPercent) / 100;
+                const finalAmount = taxableValue + gstAmount;
+
+                row.querySelector('.item-total').innerText = finalAmount.toFixed(2);
+
+                totalQty += qty;
+                totalDiscount += discount;
+                totalGstAmount += gstAmount;
+                subTotal += basePrice;
+            } else {
+                row.querySelector('.item-total').innerText = "0.00";
+            }
+        });
+
+        const grandTotal = subTotal - totalDiscount + totalGstAmount;
+        const received = parseFloat(document.getElementById('amount-received').value) || 0;
+        const balance = grandTotal - received;
+
+        // Update Totals Row
+        document.getElementById('total-qty').innerText = totalQty;
+        document.getElementById('total-discount').innerText = totalDiscount.toFixed(2);
+        document.getElementById('total-gst-amount').innerText = totalGstAmount.toFixed(2);
+        document.getElementById('grand-total').innerText = grandTotal.toFixed(2);
+
+        // Update Summary Section
+        document.getElementById('summary-subtotal').innerText = subTotal.toFixed(2);
+        document.getElementById('summary-discount').innerText = totalDiscount.toFixed(2);
+        document.getElementById('summary-sgst').innerText = (totalGstAmount / 2).toFixed(2);
+        document.getElementById('summary-cgst').innerText = (totalGstAmount / 2).toFixed(2);
+        document.getElementById('summary-total').innerText = grandTotal.toFixed(2);
+        document.getElementById('amount-balance').innerText = balance.toFixed(2);
+
+        // Convert amount to words
+        document.getElementById('amount-in-words').innerText = numberToWords(Math.round(grandTotal)) + " Rupees Only";
+    }
+
+    window.addRow = function() {
+        const tbody = table.querySelector('tbody');
+        const rowCount = tbody.rows.length + 1;
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td class="text-center">${rowCount}</td>
+            <td class="p-0"><input type="text" class="form-control form-control-sm border-0 rounded-0 item-name" placeholder="Item ${rowCount}"></td>
+            <td class="p-0"><input type="number" class="form-control form-control-sm border-0 rounded-0 text-center item-qty" value="0" step="0.01"></td>
+            <td class="p-0"><input type="text" class="form-control form-control-sm border-0 rounded-0 text-center item-unit" placeholder="Pcs"></td>
+            <td class="p-0"><input type="number" class="form-control form-control-sm border-0 rounded-0 text-right item-price" value="0.00" step="0.01"></td>
+            <td class="p-0"><input type="number" class="form-control form-control-sm border-0 rounded-0 text-right item-discount" value="0" step="0.01"></td>
+            <td class="p-0">
+                <select class="form-control form-control-sm border-0 rounded-0 item-gst">
+                    <option value="0">0%</option>
+                    <option value="5">5%</option>
+                    <option value="12">12%</option>
+                    <option value="18" selected>18%</option>
+                    <option value="28">28%</option>
+                </select>
+            </td>
+            <td class="p-0 text-right pr-2 vertical-center font-weight-bold item-total">0.00</td>
+        `;
+        tbody.appendChild(newRow);
+    };
+
+    function numberToWords(num) {
+        if (num === 0) return 'Zero';
+        const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        
+        const g = ['', 'Thousand', 'Lakh', 'Crore'];
+        
+        function toWords(n) {
+            if (n < 20) return a[n];
+            if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '');
+            if (n < 1000) return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + toWords(n % 100) : '');
+            return '';
+        }
+
+        let res = '';
+        let count = 0;
+        
+        // Indian numbering system handling (Crore, Lakh, Thousand)
+        // Convert to strings and handle chunks
+        let s = num.toString();
+        
+        // Handle last 3 digits
+        if (s.length > 3) {
+            let last3 = parseInt(s.substring(s.length - 3));
+            if (last3 > 0) res = toWords(last3);
+            s = s.substring(0, s.length - 3);
+            
+            // Handle remaining in pairs
+            const units = ['Thousand', 'Lakh', 'Crore'];
+            let unitIdx = 0;
+            while (s.length > 0) {
+                let chunk;
+                if (s.length >= 2) {
+                    chunk = parseInt(s.substring(s.length - 2));
+                    s = s.substring(0, s.length - 2);
+                } else {
+                    chunk = parseInt(s);
+                    s = '';
+                }
+                
+                if (chunk > 0) {
+                    res = toWords(chunk) + ' ' + units[unitIdx] + (res !== '' ? ' ' + res : '');
+                }
+                unitIdx++;
+                if (unitIdx >= units.length) unitIdx = units.length - 1; // Cap at Crore for simplicity
+            }
+        } else {
+            res = toWords(num);
+        }
+        
+        return res.trim();
+    }
+});
+</script>
+{% endblock %}
