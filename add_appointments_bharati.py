@@ -1,4 +1,3 @@
-
 """
 Add sample appointments for Bharatiiiii Yallureeee (Customer ID: 128)
 """
