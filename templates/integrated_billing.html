@@ -883,6 +883,8 @@ textarea.form-control {
                     <div id="servicesContainer">
                         <div class="item-row service-row">
                             <div class="row g-3">
+                                <input type="hidden" name="appointment_ids[]" value="">
+                                <input type="hidden" name="is_product[]" value="false">
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label class="form-label">Service</label>
@@ -957,6 +959,7 @@ textarea.form-control {
                     <div id="productsContainer">
                         <div class="item-row product-row">
                             <div class="row g-3">
+                                <input type="hidden" name="is_product[]" value="true">
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label class="form-label">Product</label>
@@ -2590,6 +2593,7 @@ function resetCustomerPackages() {
         const serviceTemplateHtml = `
             <div class="item-row service-row">
                 <div class="row g-3">
+                    <input type="hidden" name="is_product[]" value="false">
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Service</label>
@@ -2650,6 +2654,7 @@ function resetCustomerPackages() {
         const productTemplateHtml = `
             <div class="item-row product-row">
                 <div class="row g-3">
+                    <input type="hidden" name="is_product[]" value="true">
                     <div class="col-md-3">
                         <div class="form-group">
                             <label class="form-label">Product</label>
