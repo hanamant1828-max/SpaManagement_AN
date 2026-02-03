@@ -4426,6 +4426,12 @@ function resetCustomerPackages() {
                 previewWindow.document.write(data.preview_html);
                 previewWindow.document.close();
                 console.log('👍 Preview opened successfully.');
+                
+                // Directly trigger print dialog
+                previewWindow.focus();
+                setTimeout(() => {
+                    previewWindow.print();
+                }, 500);
             } else {
                 alert('Please allow pop-ups to view the preview');
                 console.warn('⚠️ Pop-up blocked, could not open preview window.');
