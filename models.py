@@ -507,6 +507,7 @@ class Service(db.Model):
     description = db.Column(db.Text)
     duration = db.Column(db.Integer, nullable=False)  # in minutes
     price = db.Column(db.Float, nullable=False)
+    gst_percentage = db.Column(db.Float, default=18.0)  # Per-service GST percentage
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     category = db.Column(db.String(50), nullable=False)  # Fallback for compatibility
     is_active = db.Column(db.Boolean, default=True)

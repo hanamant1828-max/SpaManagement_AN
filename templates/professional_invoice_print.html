@@ -420,12 +420,13 @@
                     <thead>
                         <tr>
                             <th style="width: 5%;">#</th>
-                            <th style="width: 35%;">Description</th>
-                            <th class="text-center" style="width: 8%;">Qty</th>
-                            <th class="text-right" style="width: 12%;">Rate</th>
-                            <th class="text-right" style="width: 12%;">Amount</th>
-                            <th class="text-right" style="width: 12%;">Discount</th>
-                            <th class="text-right" style="width: 16%;">Total</th>
+                            <th style="width: 30%;">Description</th>
+                            <th class="text-center" style="width: 5%;">Qty</th>
+                            <th class="text-right" style="width: 10%;">Rate</th>
+                            <th class="text-right" style="width: 10%;">Discount</th>
+                            <th class="text-right" style="width: 10%;">Tax %</th>
+                            <th class="text-right" style="width: 12%;">Tax Amt</th>
+                            <th class="text-right" style="width: 18%;">Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -440,7 +441,6 @@
                             </td>
                             <td class="text-center">{{ "%.0f"|format(item.quantity) if item.quantity == item.quantity|int else "%.1f"|format(item.quantity) }}</td>
                             <td class="text-right">{{ "%.2f"|format(item.unit_price) }}</td>
-                            <td class="text-right">{{ "%.2f"|format(item.original_amount or (item.quantity * item.unit_price)) }}</td>
                             <td class="text-right">
                                 {% if item.deduction_amount and item.deduction_amount > 0 %}
                                 <span class="discount-value">-{{ "%.2f"|format(item.deduction_amount) }}</span>
@@ -448,6 +448,8 @@
                                 <span style="color: #ccc;">-</span>
                                 {% endif %}
                             </td>
+                            <td class="text-right">{{ "%.1f"|format(item.gst_percentage or 0) }}%</td>
+                            <td class="text-right">{{ "%.2f"|format(item.gst_amount or 0) }}</td>
                             <td class="text-right" style="font-weight: 600;">{{ "%.2f"|format(item.final_amount) }}</td>
                         </tr>
                         {% endfor %}

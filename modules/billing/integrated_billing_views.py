@@ -1276,26 +1276,51 @@ def create_professional_invoice():
         total_gst_rate = igst_rate if is_interstate else (cgst_rate + sgst_rate)
 
         # GST CALCULATION RULES FOR BILLING:
-        # 1. SERVICES: GST is INCLUSIVE in price (extract 18% GST from total)
-        # 2. PRODUCTS: MRP is final price (NO GST calculation - already included in MRP)
+        # 1. SERVICES: GST is calculated per item based on service settings
+        # 2. PRODUCTS: MRP is final price (GST usually included)
 
-        # For SERVICES: GST is INCLUSIVE (extract GST from price)
-        if total_gst_rate > 0:
-            service_base_amount = services_subtotal / (1 + total_gst_rate)
-            service_gst_amount = services_subtotal - service_base_amount
-        else:
-            service_base_amount = services_subtotal
-            service_gst_amount = 0
+        total_tax = 0
+        cgst_total = 0
+        sgst_total = 0
+        igst_total = 0
 
-        # For PRODUCTS: MRP is FINAL PRICE - No additional GST
-        # Product MRP already includes all taxes, so we don't add or extract GST
+        # Process services and calculate their individual taxes
+        for s_idx, service_data in enumerate(services_data):
+            service = Service.query.get(service_data['service_id'])
+            if service:
+                item_total = service.price * service_data['quantity']
+                item_gst_rate = (service.gst_percentage or 18.0) / 100
+                
+                # Extract GST from inclusive price
+                item_base = item_total / (1 + item_gst_rate)
+                item_tax = item_total - item_base
+                
+                service_data['base_amount'] = item_base
+                service_data['tax_amount'] = item_tax
+                service_data['gst_percentage'] = service.gst_percentage or 18.0
+                
+                total_tax += item_tax
+                if is_interstate:
+                    service_data['igst_amount'] = item_tax
+                    service_data['cgst_amount'] = 0
+                    service_data['sgst_amount'] = 0
+                    igst_total += item_tax
+                else:
+                    service_data['cgst_amount'] = item_tax / 2
+                    service_data['sgst_amount'] = item_tax / 2
+                    service_data['igst_amount'] = 0
+                    cgst_total += item_tax / 2
+                    sgst_total += item_tax / 2
+
+        # For PRODUCTS: Assuming MRP is inclusive of tax, but we don't extract it for now per previous logic
+        # Unless specified otherwise, products are handled as before
         inventory_base_amount = inventory_subtotal
-        inventory_gst_amount = 0  # No GST calculation for products
+        inventory_gst_amount = 0
 
-        # Total base amounts
-        total_base_amount = service_base_amount + inventory_base_amount
-
-        # Calculate discount on base amount
+        # Total amounts
+        total_base_amount = sum(s.get('base_amount', 0) for s in services_data) + inventory_base_amount
+        
+        # Calculate discount on total base amount
         discount_type = request.form.get('discount_type', 'amount')
         discount_value = float(request.form.get('discount_value', 0))
         if discount_type == 'percentage':
@@ -1305,36 +1330,25 @@ def create_professional_invoice():
 
         # Net base after discount
         net_base_amount = max(0, total_base_amount - discount_amount)
+        
+        # Pro-rata tax adjustment if discount applied
+        if total_base_amount > 0 and discount_amount > 0:
+            adjustment_factor = net_base_amount / total_base_amount
+            total_tax *= adjustment_factor
+            cgst_total *= adjustment_factor
+            sgst_total *= adjustment_factor
+            igst_total *= adjustment_factor
+            
+            # Update individual service tax data for InvoiceItems
+            for s in services_data:
+                s['tax_amount'] *= adjustment_factor
+                s['cgst_amount'] *= adjustment_factor
+                s['sgst_amount'] *= adjustment_factor
+                s['igst_amount'] *= adjustment_factor
 
-        # Recalculate GST proportionally after discount
-        if total_base_amount > 0 and total_gst_rate > 0:
-            # Apply discount factor to service GST (already extracted)
-            discount_factor = (net_base_amount / total_base_amount) if total_base_amount > 0 else 0
-            final_service_gst = service_gst_amount * discount_factor
-
-            # For inventory, NO GST recalculation (MRP is final price)
-            inventory_discount = discount_amount * (inventory_base_amount / total_base_amount) if total_base_amount > 0 else 0
-            inventory_net_base = max(0, inventory_base_amount - inventory_discount)
-            final_inventory_gst = 0  # No GST for products
-        else:
-            final_service_gst = 0
-            final_inventory_gst = 0
-
-        total_tax = final_service_gst + final_inventory_gst
-
-        # Split into CGST/SGST or IGST
-        if is_interstate:
-            igst_amount = total_tax
-            cgst_amount = 0
-            sgst_amount = 0
-        else:
-            if total_gst_rate > 0:
-                cgst_amount = total_tax * (cgst_rate / total_gst_rate)
-                sgst_amount = total_tax * (sgst_rate / total_gst_rate)
-            else:
-                cgst_amount = 0
-                sgst_amount = 0
-            igst_amount = 0
+        cgst_amount = cgst_total
+        sgst_amount = sgst_total
+        igst_amount = igst_total
 
         net_subtotal = net_base_amount
         additional_charges = float(request.form.get('additional_charges', 0))
@@ -2426,19 +2440,28 @@ def update_integrated_invoice(invoice_id):
                     description=service.description or '',
                     quantity=service_data['quantity'],
                     unit_price=service.price,
-                    original_amount=original_price,
-                    final_amount=final_amount,
-                    deduction_amount=deduction_amount,
-                    staff_revenue_price=original_price,  # Staff revenue is always original price
+                    original_amount=service_data.get('base_amount', service.price * service_data['quantity']),
+                    final_amount=service_data.get('base_amount', service.price * service_data['quantity']) + service_data.get('tax_amount', 0),
+                    deduction_amount=service_data.get('deduction_amount', 0.0),
+                    staff_revenue_price=service.price * service_data['quantity'],
                     staff_id=staff_id,
                     staff_name=staff_name,
-                    # CRITICAL: Save package benefit details for viewing/editing invoice later
+                    # GST fields
+                    gst_percentage=service_data.get('gst_percentage', 18.0),
+                    cgst_rate=(service_data.get('gst_percentage', 18.0) / 2) if not is_interstate else 0,
+                    sgst_rate=(service_data.get('gst_percentage', 18.0) / 2) if not is_interstate else 0,
+                    igst_rate=service_data.get('gst_percentage', 18.0) if is_interstate else 0,
+                    gst_amount=service_data.get('tax_amount', 0),
+                    cgst_amount=service_data.get('cgst_amount', 0),
+                    sgst_amount=service_data.get('sgst_amount', 0),
+                    igst_amount=service_data.get('igst_amount', 0),
+                    # Package benefit tracking
                     is_package_deduction=is_package_deduction,
                     package_assignment_id=service_data.get('package_assignment_id'),
-                    package_name=service_data.get('package_name') or None,
-                    package_type=service_data.get('package_type') or None,
-                    benefit_type=service_data.get('benefit_type') or None,
-                    benefit_description=service_data.get('benefit_description') or None
+                    package_name=service_data.get('package_name'),
+                    package_type=service_data.get('package_type'),
+                    benefit_type=service_data.get('benefit_type'),
+                    benefit_description=service_data.get('benefit_description')
                 )
                 db.session.add(item)
                 
