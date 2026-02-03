@@ -112,6 +112,7 @@
                         <tr>
                             <th width="5%">#</th>
                             <th width="35%">Item name</th>
+                            <th width="15%">Batch</th>
                             <th width="10%">Quantity</th>
                             <th width="10%">Unit</th>
                             <th width="10%">Price/Unit (₹)</th>
@@ -125,7 +126,16 @@
                         {% for i in range(1, 6) %}
                         <tr>
                             <td class="text-center">{{ i }}</td>
-                            <td class="p-0"><input type="text" class="form-control form-control-sm border-0 rounded-0 item-name" placeholder="Item {{ i }}"></td>
+                            <td class="p-0">
+                                <select class="form-control form-control-sm border-0 rounded-0 item-product">
+                                    <option value="">Select Product</option>
+                                </select>
+                            </td>
+                            <td class="p-0">
+                                <select class="form-control form-control-sm border-0 rounded-0 item-batch">
+                                    <option value="">Select Batch</option>
+                                </select>
+                            </td>
                             <td class="p-0"><input type="number" class="form-control form-control-sm border-0 rounded-0 text-center item-qty" value="0" step="0.01"></td>
                             <td class="p-0"><input type="text" class="form-control form-control-sm border-0 rounded-0 text-center item-unit" placeholder="Pcs"></td>
                             <td class="p-0"><input type="number" class="form-control form-control-sm border-0 rounded-0 text-right item-price" value="0.00" step="0.01"></td>
@@ -303,6 +313,61 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add event listeners for calculations
     const table = document.getElementById('invoice-items');
+    
+    // Fetch products on load
+    fetch('/api/inventory/products')
+        .then(response => response.json())
+        .then(products => {
+            const productSelects = document.querySelectorAll('.item-product');
+            productSelects.forEach(select => {
+                products.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.id;
+                    option.text = `${product.name} (${product.sku})`;
+                    select.appendChild(option);
+                });
+            });
+        });
+
+    table.addEventListener('change', function(e) {
+        if (e.target.classList.contains('item-product')) {
+            const row = e.target.closest('tr');
+            const productId = e.target.value;
+            const batchSelect = row.querySelector('.item-batch');
+            
+            // Reset batch and calculations
+            batchSelect.innerHTML = '<option value="">Select Batch</option>';
+            row.querySelector('.item-price').value = "0.00";
+            row.querySelector('.item-unit').value = "";
+            
+            if (productId) {
+                fetch(`/api/inventory/batches/for-product/${productId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.batches) {
+                            data.batches.forEach(batch => {
+                                const option = document.createElement('option');
+                                option.value = batch.id;
+                                option.text = `${batch.batch_name} (Stock: ${batch.qty_available})`;
+                                option.dataset.price = batch.selling_price || batch.unit_cost;
+                                batchSelect.appendChild(option);
+                            });
+                        }
+                    });
+            }
+            calculateInvoice();
+        }
+        
+        if (e.target.classList.contains('item-batch')) {
+            const row = e.target.closest('tr');
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            if (selectedOption && selectedOption.dataset.price) {
+                row.querySelector('.item-price').value = selectedOption.dataset.price;
+            }
+            calculateInvoice();
+        }
+    });
+
     table.addEventListener('input', calculateInvoice);
     document.getElementById('amount-received').addEventListener('input', calculateInvoice);
 
@@ -364,7 +429,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const newRow = document.createElement('tr');
         newRow.innerHTML = `
             <td class="text-center">${rowCount}</td>
-            <td class="p-0"><input type="text" class="form-control form-control-sm border-0 rounded-0 item-name" placeholder="Item ${rowCount}"></td>
+            <td class="p-0">
+                <select class="form-control form-control-sm border-0 rounded-0 item-product">
+                    <option value="">Select Product</option>
+                </select>
+            </td>
+            <td class="p-0">
+                <select class="form-control form-control-sm border-0 rounded-0 item-batch">
+                    <option value="">Select Batch</option>
+                </select>
+            </td>
             <td class="p-0"><input type="number" class="form-control form-control-sm border-0 rounded-0 text-center item-qty" value="0" step="0.01"></td>
             <td class="p-0"><input type="text" class="form-control form-control-sm border-0 rounded-0 text-center item-unit" placeholder="Pcs"></td>
             <td class="p-0"><input type="number" class="form-control form-control-sm border-0 rounded-0 text-right item-price" value="0.00" step="0.01"></td>
@@ -381,6 +455,19 @@ document.addEventListener('DOMContentLoaded', function() {
             <td class="p-0 text-right pr-2 vertical-center font-weight-bold item-total">0.00</td>
         `;
         tbody.appendChild(newRow);
+
+        // Fetch products for the new row
+        fetch('/api/inventory/products')
+            .then(response => response.json())
+            .then(products => {
+                const productSelect = newRow.querySelector('.item-product');
+                products.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.id;
+                    option.text = `${product.name} (${product.sku})`;
+                    productSelect.appendChild(option);
+                });
+            });
     };
 
     function numberToWords(num) {
