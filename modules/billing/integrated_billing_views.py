@@ -1574,6 +1574,7 @@ def create_professional_invoice():
                         staff_revenue_price=original_service_price,  # ALWAYS store original price for staff revenue/commission
                         staff_id=staff_id,  # Store staff ID
                         staff_name=staff_name,  # Store staff name for quick reference
+                        is_product=False, # Service is not a product
                         # GST fields
                         gst_percentage=service_data.get('gst_percentage', service.gst_percentage or 18.0),
                         cgst_rate=(service_data.get('gst_percentage', service.gst_percentage or 18.0) / 2) if not is_interstate else 0,
@@ -1787,7 +1788,8 @@ def create_professional_invoice():
                         final_amount=product_amount,
                         staff_revenue_price=product_amount,  # Track product revenue for staff commission
                         staff_id=staff_id,
-                        staff_name=staff_name
+                        staff_name=staff_name,
+                        is_product=True # Inventory item is a product
                     )
                     db.session.add(item)
                     inventory_items_created += 1

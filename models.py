@@ -1249,6 +1249,9 @@ class InvoiceItem(db.Model):
     sgst_amount = db.Column(db.Float, default=0.0)
     igst_amount = db.Column(db.Float, default=0.0)
 
+    # Product/Service classification
+    is_product = db.Column(db.Boolean, default=False)
+
 
 # Unaki Booking System Models
 class UnakiBooking(db.Model):
