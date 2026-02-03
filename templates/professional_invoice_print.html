@@ -448,7 +448,13 @@
                                 <span style="color: #ccc;">-</span>
                                 {% endif %}
                             </td>
-                            <td class="text-right">{{ "%.1f"|format(item.gst_percentage or 0) }}%</td>
+                            <td class="text-right">
+                                {% if item.gst_percentage %}
+                                    {{ "%.1f"|format(item.gst_percentage) }}%
+                                {% else %}
+                                    0.0%
+                                {% endif %}
+                            </td>
                             <td class="text-right">{{ "%.2f"|format(item.gst_amount or 0) }}</td>
                             <td class="text-right" style="font-weight: 600;">{{ "%.2f"|format(item.final_amount) }}</td>
                         </tr>
