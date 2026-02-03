@@ -2849,9 +2849,29 @@ def view_professional_invoice(invoice_id):
     
     # Calculate totals
     subtotal = float(invoice.subtotal or 0)
-    taxable_amount = subtotal - float(invoice.discount_amount or 0)
-    cgst = taxable_amount * (gst_config.get('cgst_rate', 9) / 100)
-    sgst = taxable_amount * (gst_config.get('sgst_rate', 9) / 100)
+    discount = float(invoice.discount_amount or 0)
+    taxable_amount = subtotal - discount
+    
+    # Get rates from config or use defaults
+    cgst_rate = float(gst_config.get('cgst_rate', 9))
+    sgst_rate = float(gst_config.get('sgst_rate', 9))
+    igst_rate = float(gst_config.get('igst_rate', 18))
+    
+    # Simple logic to determine if IGST or (CGST+SGST)
+    is_interstate = invoice.customer.state != gst_config.get('state', 'Karnataka') if invoice.customer and hasattr(invoice.customer, 'state') else False
+    
+    cgst = 0
+    sgst = 0
+    igst = 0
+    gst_type = 'CGST + SGST'
+    
+    if is_interstate:
+        igst = taxable_amount * (igst_rate / 100)
+        gst_type = 'IGST'
+    else:
+        cgst = taxable_amount * (cgst_rate / 100)
+        sgst = taxable_amount * (sgst_rate / 100)
+        
     total = float(invoice.total_amount or 0)
     
     return render_template('invoice_professional.html',
@@ -2861,19 +2881,24 @@ def view_professional_invoice(invoice_id):
         business_address=business_address_setting.value if business_address_setting else '',
         business_phone=business_phone_setting.value if business_phone_setting else '',
         business_email=business_email_setting.value if business_email_setting else '',
-        business_gstin=gst_config.get('gstin', ''),
+        business_gstin=gst_config.get('gstin_number', ''),
         invoice_number=invoice.invoice_number,
         invoice_date=invoice.invoice_date.strftime('%d/%m/%Y') if invoice.invoice_date else '',
         due_date=invoice.invoice_date.strftime('%d/%m/%Y') if invoice.invoice_date else '',
-        gst_treatment='Intrastate',
-        gst_type='CGST + SGST',
+        gst_treatment='Interstate' if is_interstate else 'Intrastate',
+        gst_type=gst_type,
         client_name=invoice.customer.name if invoice.customer else 'Customer',
         client_phone=invoice.customer.phone if invoice.customer else '',
+        client_address=getattr(invoice.customer, 'address', ''),
         items=items,
         subtotal=f"{subtotal:,.2f}",
         taxable_amount=f"{taxable_amount:,.2f}",
         cgst_amount=f"{cgst:,.2f}",
         sgst_amount=f"{sgst:,.2f}",
+        igst_amount=f"{igst:,.2f}",
+        cgst_rate=f"{cgst_rate}%",
+        sgst_rate=f"{sgst_rate}%",
+        igst_rate=f"{igst_rate}%",
         total_amount=f"{total:,.2f}",
         amount_in_words=number_to_words(total),
         payment_method=invoice.payment_method or 'Cash'

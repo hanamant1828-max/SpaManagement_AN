@@ -682,18 +682,35 @@
                 <div class="totals-box">
                     <div class="total-row">
                         <span class="label">Subtotal</span>
-                        <span class="value">₹{{ subtotal | default('4,100') }}</span>
+                        <span class="value">₹{{ subtotal | default('0.00') }}</span>
                     </div>
                     <div class="total-row">
                         <span class="label">Taxable Amount</span>
-                        <span class="value">₹{{ taxable_amount | default('4,100') }}</span>
+                        <span class="value">₹{{ taxable_amount | default('0.00') }}</span>
                     </div>
+                    {% if cgst_amount and cgst_amount != '0.00' %}
                     <div class="total-row">
-                        <span class="label">CGST (9%)</span>
-                        <span class="value">₹{{ cgst_amount | default('369') }}</span>
+                        <span class="label">CGST ({{ cgst_rate | default('9%') }})</span>
+                        <span class="value">₹{{ cgst_amount }}</span>
                     </div>
+                    {% endif %}
+                    {% if sgst_amount and sgst_amount != '0.00' %}
                     <div class="total-row">
-                        <span class="label">SGST (9%)</span>
+                        <span class="label">SGST ({{ sgst_rate | default('9%') }})</span>
+                        <span class="value">₹{{ sgst_amount }}</span>
+                    </div>
+                    {% endif %}
+                    {% if igst_amount and igst_amount != '0.00' %}
+                    <div class="total-row">
+                        <span class="label">IGST ({{ igst_rate | default('18%') }})</span>
+                        <span class="value">₹{{ igst_amount }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="total-row grand-total">
+                        <span class="label">Total Amount</span>
+                        <span class="value">₹{{ total_amount | default('0.00') }}</span>
+                    </div>
+                </div>
                         <span class="value">₹{{ sgst_amount | default('369') }}</span>
                     </div>
                     <div class="total-row grand-total">
