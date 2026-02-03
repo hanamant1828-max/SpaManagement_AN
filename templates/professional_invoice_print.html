@@ -108,6 +108,16 @@
                 width: 100px;
             }
 
+            /* Section Headers */
+            .section-header {
+                background-color: #5bc0de;
+                color: white;
+                padding: 10px 15px;
+                font-size: 14px;
+                font-weight: bold;
+                border-top: 2px solid #000;
+            }
+
             /* Items Table */
             .items-table {
                 width: 100%;
@@ -137,6 +147,11 @@
                 text-align: right;
             }
 
+            .items-table .subtotal-row {
+                background-color: #f0f0f0;
+                font-weight: bold;
+            }
+
             .items-table .total-row {
                 background-color: #d9534f;
                 color: white;
@@ -147,6 +162,7 @@
             .footer-section {
                 display: table;
                 width: 100%;
+                border-top: 2px solid #000;
             }
 
             .left-footer {
@@ -293,81 +309,220 @@
                 </div>
             </div>
 
-            <!-- Items Table -->
+            <!-- Separate products and services -->
+            {% set products = invoice_items|selectattr('is_product')|list or
+            invoice_items|selectattr('item_type', 'equalto', 'product')|list %}
+            {% set services = invoice_items|rejectattr('is_product')|list if
+            invoice_items|selectattr('is_product')|list else
+            invoice_items|rejectattr('item_type', 'equalto', 'product')|list %}
+            {% if tax_details.get('is_interstate') %} {% set gst_rate =
+            tax_details.get('igst_rate', 0) %} {% else %} {% set gst_rate =
+            tax_details.get('sgst_rate', 0) + tax_details.get('cgst_rate', 0) %}
+            {% endif %}
+
+            <!-- PRODUCTS SECTION (GST Inclusive - showing MRP minus GST) -->
+            {% if products|length > 0 %}
+            <div class="section-header">
+                PRODUCTS (MRP includes GST - base price calculated by
+                subtracting GST)
+            </div>
             <table class="items-table">
                 <thead>
                     <tr>
                         <th style="width: 5%">#</th>
-                        <th style="width: 25%">Item name</th>
-                        <th style="width: 10%">Quantity</th>
+                        <th style="width: 20%">Item name</th>
+                        <th style="width: 8%">Quantity</th>
                         <th style="width: 8%">Unit</th>
-                        <th style="width: 12%">Price/<br />Unit</th>
+                        <th style="width: 10%">MRP<br />(Incl. GST)</th>
+                        <th style="width: 10%">Price/Unit<br />(Base)</th>
                         <th style="width: 10%">Discount</th>
-                        <th style="width: 10%">GST</th>
+                        <th style="width: 14%">GST</th>
                         <th style="width: 15%">Amount</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in invoice_items %}
+                    {% set product_subtotal = namespace(base=0, gst=0, total=0)
+                    %} {% for item in products %} {% set mrp_price =
+                    item.selling_price or item.unit_price %} {# For PRODUCTS:
+                    GST is INCLUSIVE in MRP - subtract GST to get base price #}
+                    {% set base_price = mrp_price / (1 + gst_rate/100) %} {% set
+                    gst_per_unit = mrp_price - base_price %} {% set
+                    total_base_amount = base_price * item.quantity %} {% set
+                    total_gst_amount = gst_per_unit * item.quantity %} {% set
+                    total_amount = mrp_price * item.quantity %} {% set
+                    product_subtotal.base = product_subtotal.base +
+                    total_base_amount %} {% set product_subtotal.gst =
+                    product_subtotal.gst + total_gst_amount %} {% set
+                    product_subtotal.total = product_subtotal.total +
+                    total_amount %}
+
                     <tr>
                         <td>{{ loop.index }}</td>
                         <td class="item-name">
-                            {{ item.item_name or 'Item' + loop.index|string }}
+                            {{ item.item_name or 'Product ' + loop.index|string
+                            }}
                         </td>
                         <td>
                             {{ "%.0f"|format(item.quantity) if item.quantity ==
                             item.quantity|int else "%.1f"|format(item.quantity)
                             }}
                         </td>
-                        <td>{{ loop.index + 1 }}</td>
-                        <td class="price">
-                            ₹ {{ "%.2f"|format(item.unit_price) }}
-                        </td>
+                        <td>{{ item.unit or 'Pcs' }}</td>
+                        <td class="price">₹{{ "%.2f"|format(mrp_price) }}</td>
+                        <td class="price">₹{{ "%.2f"|format(base_price) }}</td>
                         <td>
                             {{ "%.0f"|format(item.discount_percentage or
-                            item.deduction_amount or 0) }}
-                        </td>
-                        <td>
-                            {% if tax_details.get('is_interstate') %} {# For
-                            interstate: show IGST% #} {{
-                            "%.0f"|format(tax_details.get('igst_rate', 0)) }}%
-                            {% else %} {# For intrastate: show SGST% + CGST% #}
-                            {{ "%.0f"|format(tax_details.get('sgst_rate', 0) +
-                            tax_details.get('cgst_rate', 0)) }}% {% endif %}
+                            item.deduction_amount or 0) }}%
                         </td>
                         <td class="price">
-                            {{ "%.0f"|format(item.final_amount) }}
+                            {% if tax_details.get('is_interstate') %} IGST {{
+                            "%.0f"|format(tax_details.get('igst_rate', 0))
+                            }}%<br />
+                            ₹{{ "%.2f"|format(total_gst_amount) }} {% else %}
+                            GST {{ "%.0f"|format(gst_rate) }}%<br />
+                            ₹{{ "%.2f"|format(total_gst_amount) }} {% endif %}
+                        </td>
+                        <td class="price">
+                            ₹{{ "%.2f"|format(total_amount) }}
                         </td>
                     </tr>
                     {% endfor %}
 
-                    <!-- Total Row -->
-                    <tr class="total-row">
-                        <td colspan="2"><strong>Total</strong></td>
+                    <!-- Product Subtotal Row -->
+                    <tr class="subtotal-row">
+                        <td colspan="5"><strong>Products Subtotal</strong></td>
+                        <td class="price">
+                            <strong
+                                >₹{{ "%.2f"|format(product_subtotal.base)
+                                }}</strong
+                            >
+                        </td>
+                        <td></td>
+                        <td class="price">
+                            <strong
+                                >₹{{ "%.2f"|format(product_subtotal.gst)
+                                }}</strong
+                            >
+                        </td>
+                        <td class="price">
+                            <strong
+                                >₹{{ "%.2f"|format(product_subtotal.total)
+                                }}</strong
+                            >
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            {% endif %}
+
+            <!-- SERVICES SECTION (GST Exclusive) -->
+            {% if services|length > 0 %}
+            <div class="section-header">
+                SERVICES (MRP is base price, GST added separately)
+            </div>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th style="width: 5%">#</th>
+                        <th style="width: 20%">Service name</th>
+                        <th style="width: 8%">Quantity</th>
+                        <th style="width: 8%">Unit</th>
+                        <th style="width: 10%">MRP<br />(Excl. GST)</th>
+                        <th style="width: 10%">Price/Unit<br />(Base)</th>
+                        <th style="width: 10%">Discount</th>
+                        <th style="width: 14%">GST</th>
+                        <th style="width: 15%">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set service_subtotal = namespace(base=0, gst=0, total=0)
+                    %} {% for item in services %} {% set base_price =
+                    item.selling_price or item.unit_price %} {# For SERVICES:
+                    GST is EXCLUSIVE - add GST on top of base price #} {% set
+                    gst_per_unit = base_price * (gst_rate/100) %} {% set
+                    total_base_amount = base_price * item.quantity %} {% set
+                    total_gst_amount = gst_per_unit * item.quantity %} {% set
+                    total_amount = total_base_amount + total_gst_amount %} {%
+                    set service_subtotal.base = service_subtotal.base +
+                    total_base_amount %} {% set service_subtotal.gst =
+                    service_subtotal.gst + total_gst_amount %} {% set
+                    service_subtotal.total = service_subtotal.total +
+                    total_amount %}
+
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td class="item-name">
+                            {{ item.item_name or 'Service ' + loop.index|string
+                            }}
+                        </td>
                         <td>
+                            {{ "%.0f"|format(item.quantity) if item.quantity ==
+                            item.quantity|int else "%.1f"|format(item.quantity)
+                            }}
+                        </td>
+                        <td>{{ item.unit or 'Hrs' }}</td>
+                        <td class="price">₹{{ "%.2f"|format(base_price) }}</td>
+                        <td class="price">₹{{ "%.2f"|format(base_price) }}</td>
+                        <td>
+                            {{ "%.0f"|format(item.discount_percentage or
+                            item.deduction_amount or 0) }}%
+                        </td>
+                        <td class="price">
+                            {% if tax_details.get('is_interstate') %} IGST {{
+                            "%.0f"|format(tax_details.get('igst_rate', 0))
+                            }}%<br />
+                            ₹{{ "%.2f"|format(total_gst_amount) }} {% else %}
+                            GST {{ "%.0f"|format(gst_rate) }}%<br />
+                            ₹{{ "%.2f"|format(total_gst_amount) }} {% endif %}
+                        </td>
+                        <td class="price">
+                            ₹{{ "%.2f"|format(total_amount) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    <!-- Service Subtotal Row -->
+                    <tr class="subtotal-row">
+                        <td colspan="5"><strong>Services Subtotal</strong></td>
+                        <td class="price">
                             <strong
-                                >{{ invoice_items|sum(attribute='quantity')|int
+                                >₹{{ "%.2f"|format(service_subtotal.base)
                                 }}</strong
                             >
                         </td>
                         <td></td>
-                        <td></td>
                         <td class="price">
                             <strong
-                                >{{ "%.0f"|format(invoice.discount_amount or 0)
+                                >₹{{ "%.2f"|format(service_subtotal.gst)
                                 }}</strong
                             >
                         </td>
                         <td class="price">
                             <strong
-                                >{{ "%.2f"|format(tax_details.get('cgst_amount',
+                                >₹{{ "%.2f"|format(service_subtotal.total)
+                                }}</strong
+                            >
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            {% endif %}
+
+            <!-- GRAND TOTAL -->
+            <table class="items-table">
+                <tbody>
+                    <tr class="total-row">
+                        <td colspan="6"><strong>GRAND TOTAL</strong></td>
+                        <td class="price">
+                            <strong>
+                                ₹{{ "%.2f"|format(tax_details.get('cgst_amount',
                                 0) + tax_details.get('sgst_amount', 0) +
-                                tax_details.get('igst_amount', 0)) }}</strong
-                            >
+                                tax_details.get('igst_amount', 0)) }}
+                            </strong>
                         </td>
                         <td class="price">
                             <strong
-                                >{{ "%.0f"|format(invoice.total_amount)
+                                >₹{{ "%.2f"|format(invoice.total_amount)
                                 }}</strong
                             >
                         </td>
@@ -388,41 +543,77 @@
                     </div>
                     <div style="margin-top: 10px; font-size: 11px">
                         <p>1. Payment is due as per agreed terms.</p>
-                        <p>2. This is a computer-generated invoice.</p>
-                        <p>3. For queries, contact our customer service.</p>
+                        <p>
+                            2. Products: MRP includes GST. Base price shown
+                            after subtracting GST.
+                        </p>
+                        <p>
+                            3. Services: Prices exclusive of GST, GST added
+                            separately.
+                        </p>
+                        <p>4. This is a computer-generated invoice.</p>
+                        <p>5. For queries, contact our customer service.</p>
                     </div>
                 </div>
 
                 <div class="right-footer">
-                    <div class="subtotal-section">Sub Total: ######</div>
+                    {% set subtotal = invoice.total_amount -
+                    (tax_details.get('cgst_amount', 0) +
+                    tax_details.get('sgst_amount', 0) +
+                    tax_details.get('igst_amount', 0)) %}
+                    <div class="subtotal-section">
+                        Sub Total (before GST): ₹{{ "%.2f"|format(subtotal) }}
+                    </div>
 
                     <table class="summary-table">
                         <tr>
                             <td class="label">Discount:</td>
                             <td class="value">
-                                {{ "%.0f"|format(invoice.discount_amount or 40)
+                                ₹{{ "%.2f"|format(invoice.discount_amount or 0)
                                 }}
                             </td>
                         </tr>
+                        {% if not tax_details.get('is_interstate') %}
                         <tr>
-                            <td class="label">SGST:</td>
+                            <td class="label">
+                                SGST ({{
+                                "%.0f"|format(tax_details.get('sgst_rate', 0))
+                                }}%):
+                            </td>
                             <td class="value">
-                                {{ "%.2f"|format(tax_details.get('sgst_amount',
+                                ₹{{ "%.2f"|format(tax_details.get('sgst_amount',
                                 0)) }}
                             </td>
                         </tr>
                         <tr>
-                            <td class="label">CGST:</td>
+                            <td class="label">
+                                CGST ({{
+                                "%.0f"|format(tax_details.get('cgst_rate', 0))
+                                }}%):
+                            </td>
                             <td class="value">
-                                {{ "%.2f"|format(tax_details.get('cgst_amount',
+                                ₹{{ "%.2f"|format(tax_details.get('cgst_amount',
                                 0)) }}
                             </td>
                         </tr>
+                        {% else %}
+                        <tr>
+                            <td class="label">
+                                IGST ({{
+                                "%.0f"|format(tax_details.get('igst_rate', 0))
+                                }}%):
+                            </td>
+                            <td class="value">
+                                ₹{{ "%.2f"|format(tax_details.get('igst_amount',
+                                0)) }}
+                            </td>
+                        </tr>
+                        {% endif %}
                         <tr class="total-row">
                             <td class="label"><strong>Total</strong></td>
                             <td class="value">
                                 <strong
-                                    >{{ "%.1f"|format(invoice.total_amount)
+                                    >₹{{ "%.2f"|format(invoice.total_amount)
                                     }}</strong
                                 >
                             </td>
@@ -430,14 +621,14 @@
                         <tr>
                             <td class="label">Received:</td>
                             <td class="value">
-                                {{ "%.1f"|format(invoice.amount_paid or
+                                ₹{{ "%.2f"|format(invoice.amount_paid or
                                 invoice.total_amount) }}
                             </td>
                         </tr>
                         <tr>
                             <td class="label">Balance:</td>
                             <td class="value">
-                                {{ "%.2f"|format((invoice.total_amount -
+                                ₹{{ "%.2f"|format((invoice.total_amount -
                                 (invoice.amount_paid or
                                 invoice.total_amount))|abs) }}
                             </td>
