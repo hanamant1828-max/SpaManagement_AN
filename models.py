@@ -1239,6 +1239,16 @@ class InvoiceItem(db.Model):
     staff_id = db.Column(db.Integer, nullable=True, info={'foreign_key': False})
     staff_name = db.Column(db.String(200), nullable=True)
 
+    # GST fields per item
+    gst_percentage = db.Column(db.Float, default=0.0)
+    cgst_rate = db.Column(db.Float, default=0.0)
+    sgst_rate = db.Column(db.Float, default=0.0)
+    igst_rate = db.Column(db.Float, default=0.0)
+    gst_amount = db.Column(db.Float, default=0.0)
+    cgst_amount = db.Column(db.Float, default=0.0)
+    sgst_amount = db.Column(db.Float, default=0.0)
+    igst_amount = db.Column(db.Float, default=0.0)
+
 
 # Unaki Booking System Models
 class UnakiBooking(db.Model):
