@@ -333,7 +333,6 @@
                         <th style="width: 20%">Item name</th>
                         <th style="width: 8%">Quantity</th>
                         <th style="width: 8%">Unit</th>
-                        <th style="width: 10%">MRP<br />(Incl. GST)</th>
                         <th style="width: 10%">Price/Unit<br />(Base)</th>
                         <th style="width: 10%">Discount</th>
                         <th style="width: 14%">GST</th>
@@ -368,7 +367,6 @@
                             }}
                         </td>
                         <td>{{ item.unit or 'Pcs' }}</td>
-                        <td class="price">₹{{ "%.2f"|format(mrp_price) }}</td>
                         <td class="price">₹{{ "%.2f"|format(base_price) }}</td>
                         <td>
                             {{ "%.0f"|format(item.discount_percentage or
@@ -390,7 +388,7 @@
 
                     <!-- Product Subtotal Row -->
                     <tr class="subtotal-row">
-                        <td colspan="5"><strong>Products Subtotal</strong></td>
+                        <td colspan="4"><strong>Products Subtotal</strong></td>
                         <td class="price">
                             <strong
                                 >₹{{ "%.2f"|format(product_subtotal.base)
@@ -427,7 +425,6 @@
                         <th style="width: 20%">Service name</th>
                         <th style="width: 8%">Quantity</th>
                         <th style="width: 8%">Unit</th>
-                        <th style="width: 10%">MRP<br />(Excl. GST)</th>
                         <th style="width: 10%">Price/Unit<br />(Base)</th>
                         <th style="width: 10%">Discount</th>
                         <th style="width: 14%">GST</th>
@@ -462,7 +459,6 @@
                         </td>
                         <td>{{ item.unit or 'Hrs' }}</td>
                         <td class="price">₹{{ "%.2f"|format(base_price) }}</td>
-                        <td class="price">₹{{ "%.2f"|format(base_price) }}</td>
                         <td>
                             {{ "%.0f"|format(item.discount_percentage or
                             item.deduction_amount or 0) }}%
@@ -483,7 +479,7 @@
 
                     <!-- Service Subtotal Row -->
                     <tr class="subtotal-row">
-                        <td colspan="5"><strong>Services Subtotal</strong></td>
+                        <td colspan="4"><strong>Services Subtotal</strong></td>
                         <td class="price">
                             <strong
                                 >₹{{ "%.2f"|format(service_subtotal.base)
