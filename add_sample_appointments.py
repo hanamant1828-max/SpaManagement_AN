@@ -38,8 +38,16 @@ def add_sample_appointments():
         existing_count = Appointment.query.count()
         if existing_count > 0:
             print(f"Clearing {existing_count} existing appointments...")
-            Appointment.query.delete()
-            db.session.commit()
+            try:
+                # Disable FK checks for SQLite during deletion if possible
+                db.session.execute(db.text("PRAGMA foreign_keys = OFF"))
+                Appointment.query.delete()
+                db.session.execute(db.text("PRAGMA foreign_keys = ON"))
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                print(f"⚠️ Could not clear appointments automatically: {e}")
+                print("Continuing with addition...")
         
         # Sample appointments for today and upcoming days
         base_date = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
