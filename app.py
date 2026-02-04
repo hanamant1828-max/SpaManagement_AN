@@ -424,14 +424,12 @@ def utility_processor():
 def index():
     """Root route - redirect based on authentication"""
     from flask_login import current_user
-    # Redirect to public website home by default instead of dashboard/login
-    # This ensures a page is always shown to visitors
-    try:
-        return redirect(url_for('website.home'))
-    except:
-        if current_user.is_authenticated:
-            return redirect(url_for('dashboard'))
-        return redirect(url_for('login'))
+    # Standard Flask-Login redirect pattern
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    
+    # Use standard login as default safe route to ensure preview loads
+    return redirect(url_for('login'))
 
 # Add ping route for health check
 @app.route('/ping')
