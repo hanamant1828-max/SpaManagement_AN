@@ -467,8 +467,8 @@ def api_create_batch():
 
 @app.route('/api/inventory/batches/<int:batch_id>', methods=['GET'])
 @login_required
-def api_get_batch(batch_id):
-    """Get a single batch by ID"""
+def api_get_batch_detail(batch_id):
+    """Get a single batch by ID for viewing/editing"""
     try:
         batch = InventoryBatch.query.get(batch_id)
         if not batch:
@@ -1314,9 +1314,9 @@ def api_delete_category(category_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/inventory/batches/<int:batch_id>', methods=['GET'])
+@app.route('/api/inventory/batches/item/<int:batch_id>', methods=['GET'])
 @login_required
-def api_get_batch(batch_id):
+def api_get_batch_item(batch_id):
     """Get a single batch by ID for editing"""
     try:
         batch = InventoryBatch.query.get(batch_id)

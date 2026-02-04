@@ -413,7 +413,7 @@ function editBatch(batchId) {
     console.log('🔧 Opening Edit Batch modal for ID:', batchId);
 
     // Fetch fresh batch data from API to ensure we have the latest information
-    fetch(`/api/inventory/batches/${batchId}`)
+    fetch(`/api/inventory/batches/item/${batchId}`)
         .then(response => response.json())
         .then(data => {
             if (data.error) {
