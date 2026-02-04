@@ -2670,149 +2670,123 @@ def generate_invoice_preview():
 
     try:
         from modules.settings.settings_queries import get_gst_settings
-        from datetime import datetime # Import datetime here for local use
-
+        from models import SystemSetting
+        
         data = request.json or {}
-        gst_config = get_gst_settings()
+        gst_config_dict = get_gst_settings()
+        
+        # Create a gst_config object as expected by the template
+        class MockGSTConfig:
+            def __init__(self, config):
+                self.business_name = config.get('business_name', 'Your Business')
+                self.business_address = config.get('business_address', '')
+                self.business_phone = config.get('business_phone', '')
+                self.business_email = config.get('business_email', '')
+                self.gstin_number = config.get('gstin_number', '')
+                self.state = config.get('state', 'Karnataka')
+                self.cgst_rate = float(config.get('cgst_rate', 9.0))
+                self.sgst_rate = float(config.get('sgst_rate', 9.0))
+                self.igst_rate = float(config.get('igst_rate', 18.0))
+                self.enabled = config.get('enabled', True)
+
+        gst_config = MockGSTConfig(gst_config_dict)
 
         # Extract data from request
         customer_name = data.get('customer_name', 'Customer Name')
         customer_phone = data.get('customer_phone', 'N/A')
         is_interstate = data.get('is_interstate', False)
 
+        # Create a mock customer/invoice object for the template
+        class MockObject:
+            def __init__(self, **kwargs):
+                for k, v in kwargs.items():
+                    setattr(self, k, v)
+            def strftime(self, fmt):
+                from datetime import datetime
+                return datetime.now().strftime(fmt)
+
+        mock_customer = MockObject(
+            full_name=customer_name,
+            phone=customer_phone,
+            address='N/A',
+            gstin='',
+            state='Other' if is_interstate else gst_config.state
+        )
+
         # Get services and products
-        services = data.get('services', [])
-        products = data.get('products', [])
+        services_raw = data.get('services', [])
+        products_raw = data.get('products', [])
+        
+        invoice_items = []
+        
+        # Process services
+        for s in services_raw:
+            if s.get('service_id'):
+                invoice_items.append(MockObject(
+                    is_product=False,
+                    item_type='service',
+                    item_name=s.get('service_name', 'Service'),
+                    quantity=float(s.get('quantity', 1)),
+                    unit_price=float(s.get('price', 0)),
+                    selling_price=float(s.get('price', 0)),
+                    unit='Hrs',
+                    discount_percentage=0,
+                    deduction_amount=0,
+                    final_amount=float(s.get('total', 0))
+                ))
+        
+        # Process products
+        for p in products_raw:
+            if p.get('product_id'):
+                invoice_items.append(MockObject(
+                    is_product=True,
+                    item_type='product',
+                    item_name=p.get('product_name', 'Product'),
+                    quantity=float(p.get('quantity', 1)),
+                    unit_price=float(p.get('price', 0)),
+                    selling_price=float(p.get('price', 0)),
+                    unit='Pcs',
+                    discount_percentage=0,
+                    deduction_amount=0,
+                    final_amount=float(p.get('total', 0))
+                ))
 
-        # Calculate totals
-        services_subtotal = float(data.get('services_subtotal', 0))
-        products_subtotal = float(data.get('products_subtotal', 0))
-        subtotal = services_subtotal + products_subtotal
-        package_deductions = float(data.get('package_deductions', 0))
+        # Totals
+        grand_total = float(data.get('grand_total', 0))
         discount_amount = float(data.get('discount_amount', 0))
-        additional_charges = float(data.get('additional_charges', 0))
-        tips = float(data.get('tips', 0))
+        taxable_amount = float(data.get('taxable_amount', 0))
+        cgst_amount = float(data.get('cgst_amount', 0))
+        sgst_amount = float(data.get('sgst_amount', 0))
+        igst_amount = float(data.get('igst_amount', 0))
 
-        # Calculate taxable amount
-        taxable_amount = subtotal - package_deductions - discount_amount
+        mock_invoice = MockObject(
+            customer=mock_customer,
+            invoice_number='PREVIEW',
+            invoice_date=None, # Will show DD/MM/YYYY
+            total_amount=grand_total,
+            discount_amount=discount_amount,
+            subtotal=taxable_amount + discount_amount,
+            payment_method='N/A'
+        )
 
-        # Calculate GST - FIX: gst_config is a dictionary, not an object
-        if is_interstate:
-            igst_amount = taxable_amount * (gst_config['igst_rate'] / 100)
-            cgst_amount = 0
-            sgst_amount = 0
-        else:
-            cgst_amount = taxable_amount * (gst_config['cgst_rate'] / 100)
-            sgst_amount = taxable_amount * (gst_config['sgst_rate'] / 100)
-            igst_amount = 0
+        tax_details = {
+            'is_interstate': is_interstate,
+            'cgst_rate': gst_config.cgst_rate,
+            'sgst_rate': gst_config.sgst_rate,
+            'igst_rate': gst_config.igst_rate,
+            'cgst_amount': cgst_amount,
+            'sgst_amount': sgst_amount,
+            'igst_amount': igst_amount
+        }
 
-        total_tax = cgst_amount + sgst_amount + igst_amount
-        grand_total = taxable_amount + total_tax + additional_charges + tips
-
-        # Build services HTML
-        services_html = ""
-        for idx, service in enumerate(services, 1):
-            if service.get('service_id'):
-                services_html += f"""
-                <tr>
-                    <td>{idx}. {service.get('service_name', 'Service')}</td>
-                    <td>{service.get('quantity', 1)}</td>
-                    <td>₹{float(service.get('price', 0)):.2f}</td>
-                    <td>₹{float(service.get('total', 0)):.2f}</td>
-                </tr>
-                """
-
-        # Build products HTML
-        for idx, product in enumerate(products, len(services) + 1):
-            if product.get('product_id'):
-                services_html += f"""
-                <tr>
-                    <td>{idx}. {product.get('product_name', 'Product')}</td>
-                    <td>{product.get('quantity', 1)}</td>
-                    <td>₹{float(product.get('price', 0)):.2f}</td>
-                    <td>₹{float(product.get('total', 0)):.2f}</td>
-                </tr>
-                """
-
-        if not services_html:
-            services_html = '<tr><td colspan="4" class="text-center text-muted">No items added yet</td></tr>'
-
-        # Generate preview HTML
-        preview_html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Invoice Preview</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-            <style>
-                body {{ font-family: Arial, sans-serif; padding: 20px; }}
-                .invoice-header {{ border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }}
-                .table {{ font-size: 14px; }}
-                .summary-row {{ font-weight: bold; background-color: #f8f9fa; }}
-            </style>
-        </head>
-        <body>
-            <div class="professional-invoice">
-                <div class="invoice-header text-center mb-4">
-                    <h2>TAX INVOICE - PREVIEW</h2>
-                    <h4>{gst_config.get('business_name') or 'Your Spa & Wellness Center'}</h4>
-                    <p>GSTIN: {gst_config.get('gstin_number') or 'N/A'} | Contact: {gst_config.get('business_phone') or 'N/A'}</p>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-6">
-                        <strong>Bill To:</strong><br>
-                        {customer_name}<br>
-                        Contact: {customer_phone}
-                    </div>
-                    <div class="col-6 text-end">
-                        <strong>Invoice Details:</strong><br>
-                        Invoice No: PREVIEW<br>
-                        Date: {dt.now().strftime('%d-%m-%Y')}<br>
-                        GST Treatment: {'Interstate (IGST)' if is_interstate else 'Intrastate (CGST+SGST)'}
-                    </div>
-                </div>
-
-                <table class="table table-bordered">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Description</th>
-                            <th>Qty</th>
-                            <th>Rate</th>
-                            <th>Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {services_html}
-                        <tr class="summary-row">
-                            <td colspan="3" class="text-end">Subtotal:</td>
-                            <td>₹{subtotal:.2f}</td>
-                        </tr>
-                        {f'<tr><td colspan="3" class="text-end">Package Deduction:</td><td>- ₹{package_deductions:.2f}</td></tr>' if package_deductions > 0 else ''}
-                        {f'<tr><td colspan="3" class="text-end">Discount:</td><td>- ₹{discount_amount:.2f}</td></tr>' if discount_amount > 0 else ''}
-                        <tr class="summary-row">
-                            <td colspan="3" class="text-end">Taxable Amount:</td>
-                            <td>₹{taxable_amount:.2f}</td>
-                        </tr>
-                        {f'<tr><td colspan="3" class="text-end">CGST ({gst_config["cgst_rate"]}%):</td><td>₹{cgst_amount:.2f}</td></tr>' if not is_interstate else ''}
-                        {f'<tr><td colspan="3" class="text-end">SGST ({gst_config["sgst_rate"]}%):</td><td>₹{sgst_amount:.2f}</td></tr>' if not is_interstate else ''}
-                        {f'<tr><td colspan="3" class="text-end">IGST ({gst_config["igst_rate"]}%):</td><td>₹{igst_amount:.2f}</td></tr>' if is_interstate else ''}
-                        {f'<tr><td colspan="3" class="text-end">Additional Charges:</td><td>₹{additional_charges:.2f}</td></tr>' if additional_charges > 0 else ''}
-                        {f'<tr><td colspan="3" class="text-end">Tips:</td><td>₹{tips:.2f}</td></tr>' if tips > 0 else ''}
-                        <tr class="summary-row table-success">
-                            <td colspan="3" class="text-end"><strong>Grand Total:</strong></td>
-                            <td><strong>₹{grand_total:.2f}</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div class="mt-4 text-center">
-                    <p class="text-muted">This is a preview only. Save the invoice to generate a final copy.</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        """
+        # Render the SAME template used for printing
+        preview_html = render_template('professional_invoice_print.html',
+                                     invoice=mock_invoice,
+                                     invoice_items=invoice_items,
+                                     tax_details=tax_details,
+                                     gst_config=gst_config,
+                                     amount_in_words=number_to_words(grand_total),
+                                     business_logo=None)
 
         return jsonify({
             'success': True,
