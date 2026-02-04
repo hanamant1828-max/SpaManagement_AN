@@ -269,7 +269,11 @@
                     </div>
                 </div>
                 <div class="logo-section">
-                    <div class="logo-placeholder">LOGO</div>
+                    {% if gst_config.business_logo %}
+                        <img src="{{ gst_config.business_logo }}" alt="Logo" style="max-width: 150px; max-height: 100px; object-fit: contain;">
+                    {% else %}
+                        <div class="logo-placeholder">LOGO</div>
+                    {% endif %}
                 </div>
             </div>
 
