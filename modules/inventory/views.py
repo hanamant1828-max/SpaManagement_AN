@@ -1,7 +1,8 @@
 from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app import app, db
-from .models import InventoryProduct, InventoryCategory, InventoryLocation, InventoryBatch, InventoryAdjustment, InventoryConsumption, InventoryTransfer
+from sqlalchemy.orm import joinedload
+from .models import InventoryProduct, InventoryCategory, InventoryLocation, InventoryBatch, InventoryAdjustment, InventoryConsumption, InventoryTransfer, InventoryTransferItem
 from .queries import *
 from datetime import datetime, date
 from sqlalchemy import or_, desc
@@ -495,54 +496,6 @@ def api_get_batch_detail(batch_id):
             }
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/inventory/batches/<int:batch_id>', methods=['PUT'])
-@login_required
-def api_update_batch(batch_id):
-    """Update an existing batch"""
-    try:
-        from datetime import datetime
-        batch = InventoryBatch.query.get(batch_id)
-        if not batch:
-            return jsonify({'error': 'Batch not found'}), 404
-
-        data = request.get_json()
-
-        # Update fields if provided
-        if 'batch_name' in data:
-            # Check for uniqueness if name changed
-            if data['batch_name'] != batch.batch_name:
-                existing = InventoryBatch.query.filter_by(batch_name=data['batch_name']).first()
-                if existing:
-                    return jsonify({'error': 'Batch name must be unique'}), 400
-            batch.batch_name = data['batch_name']
-
-        if 'mfg_date' in data:
-            batch.mfg_date = datetime.strptime(data['mfg_date'], '%Y-%m-%d').date()
-        if 'expiry_date' in data:
-            batch.expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date()
-        if 'created_date' in data:
-            batch.created_date = datetime.strptime(data['created_date'], '%Y-%m-%d').date()
-        if 'unit_cost' in data:
-            batch.unit_cost = float(data['unit_cost'] or 0)
-        if 'selling_price' in data:
-            batch.selling_price = float(data['selling_price']) if data['selling_price'] else None
-        if 'product_id' in data:
-            batch.product_id = int(data['product_id']) if data['product_id'] else None
-        if 'location_id' in data:
-            batch.location_id = str(data['location_id']) if data['location_id'] else None
-        if 'status' in data:
-            batch.status = data['status']
-
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'Batch updated successfully'
-        })
-    except Exception as e:
-        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/batches/for-product/<int:product_id>')
@@ -1798,9 +1751,8 @@ def inventory_adjustments_data():
 
         # Base query with eager loading
         query = InventoryAdjustment.query.options(
-            joinedload(InventoryAdjustment.product),
             joinedload(InventoryAdjustment.batch),
-            joinedload(InventoryAdjustment.created_by_user)
+            joinedload(InventoryAdjustment.user)
         )
 
         # Apply date filters only if provided
