@@ -957,6 +957,69 @@ textarea.form-control {
                         </button>
                     </div>
                     <div id="productsContainer">
+                        <!-- Product rows will be added here -->
+                        {% if edit_mode and edit_invoice_data and edit_invoice_data.product_items %}
+                            {% for item in edit_invoice_data.product_items %}
+                            <div class="item-row product-row" data-product-id="{{ item.product_id }}">
+                                <div class="row g-3">
+                                    <input type="hidden" name="is_product[]" value="true">
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label class="form-label">Product</label>
+                                            <select class="form-select form-select-lg product-select" name="product_ids[]" required onchange="loadBatches(this)">
+                                                <option value="">-- Select Product --</option>
+                                                {% for product in inventory_items %}
+                                                <option value="{{ product.id }}" {% if product.id == item.product_id %}selected{% endif %}
+                                                        data-price="{{ product.mrp or 0 }}">
+                                                    {{ product.name }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label class="form-label">Batch</label>
+                                            <select class="form-select form-select-lg batch-select" name="batch_ids[]" required>
+                                                <option value="{{ item.batch_id }}" selected>Current Batch</option>
+                                            </select>
+                                            <div class="batch-info"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label class="form-label required">Staff</label>
+                                            <select class="form-select form-select-lg" name="product_staff_ids[]" required>
+                                                <option value="">-- Staff --</option>
+                                                {% for staff in staff_members %}
+                                                <option value="{{ staff.id }}" {% if staff.id == item.staff_id %}selected{% endif %}>
+                                                    {{ staff.full_name }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label class="form-label">Qty</label>
+                                            <input type="number" class="form-control" name="product_quantities[]" value="{{ item.quantity }}" min="0.01" step="0.01" required oninput="updateCalculations()">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label class="form-label">Price</label>
+                                            <input type="number" class="form-control" name="product_prices[]" value="{{ item.unit_price }}" step="0.01" required oninput="updateCalculations()">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-danger btn-sm w-100" onclick="removeRow(this)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
                         <div class="item-row product-row">
                             <div class="row g-3">
                                 <input type="hidden" name="is_product[]" value="true">
@@ -1012,6 +1075,7 @@ textarea.form-control {
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
 

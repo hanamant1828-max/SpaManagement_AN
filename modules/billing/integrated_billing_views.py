@@ -557,10 +557,13 @@ def integrated_billing(customer_id=None):
                 service_items = []
                 product_items = []
 
+                # Group inventory items by product_id if possible, or just keep as is
+                # The template expects inventory_items to be passed to it separately
+
                 for item in invoice_items:
-                    if item.item_type == 'service':
+                    if item.item_type == 'service' or (not hasattr(item, 'item_type') and item.service_id):
                         service_items.append({
-                            'service_id': item.item_id if hasattr(item, 'item_id') else item.service_id,
+                            'service_id': item.item_id if hasattr(item, 'item_id') and item.item_id else item.service_id,
                             'quantity': item.quantity,
                             'appointment_id': item.appointment_id if hasattr(item, 'appointment_id') else None,
                             'staff_id': item.staff_id if hasattr(item, 'staff_id') else None,
@@ -576,9 +579,9 @@ def integrated_billing(customer_id=None):
                             'original_amount': item.original_amount if hasattr(item, 'original_amount') else item.unit_price * item.quantity,
                             'final_amount': item.final_amount if hasattr(item, 'final_amount') else item.unit_price * item.quantity
                         })
-                    elif item.item_type == 'inventory':
+                    elif item.item_type == 'inventory' or (not hasattr(item, 'item_type') and item.product_id):
                         product_items.append({
-                            'product_id': item.product_id if hasattr(item, 'product_id') else item.item_id,
+                            'product_id': item.product_id if hasattr(item, 'product_id') and item.product_id else item.item_id,
                             'batch_id': item.batch_id if hasattr(item, 'batch_id') else None,
                             'quantity': item.quantity,
                             'unit_price': item.unit_price,
