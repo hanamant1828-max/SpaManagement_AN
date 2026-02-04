@@ -621,6 +621,13 @@ def integrated_billing(customer_id=None):
             flash(f'Error loading invoice: {str(e)}', 'danger')
             edit_invoice_data = None
 
+    # Get system settings for logo and business name
+    from models import SystemSetting
+    business_logo = SystemSetting.query.filter_by(key='business_logo').first()
+    business_logo = business_logo.value if business_logo else None
+    business_name = SystemSetting.query.filter_by(key='business_name').first()
+    business_name = business_name.value if business_name else 'Spa & Salon Suite'
+
     return render_template('integrated_billing.html',
                          customers=customers,
                          services=services,
@@ -639,7 +646,9 @@ def integrated_billing(customer_id=None):
                          preselected_client_phone=client_phone,
                          appointment_id=appointment_id,
                          edit_mode=edit_mode,
-                         edit_invoice_data=edit_invoice_data)
+                         edit_invoice_data=edit_invoice_data,
+                         business_logo=business_logo,
+                         business_name=business_name)
 
 @app.route('/appointment/<int:appointment_id>/go-to-billing')
 @login_required
