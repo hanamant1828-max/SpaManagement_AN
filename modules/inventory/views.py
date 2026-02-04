@@ -402,14 +402,14 @@ def api_get_batches():
 @app.route('/api/inventory/batches', methods=['POST'])
 @login_required
 def api_create_batch():
-    """Create a new batch (simplified - no product/location selection)"""
+    """Create a new batch"""
     try:
         from .models import InventoryBatch
         from datetime import datetime
 
         data = request.get_json()
 
-        # Validate required fields (simplified)
+        # Validate required fields
         required_fields = ['batch_name', 'mfg_date', 'expiry_date']
         for field in required_fields:
             if not data.get(field):
@@ -431,7 +431,7 @@ def api_create_batch():
         if expiry_date <= mfg_date:
             return jsonify({'error': 'Expiry date must be later than manufacturing date'}), 400
 
-        # Create batch (no product/location required)
+        # Create batch
         batch = InventoryBatch(
             batch_name=data['batch_name'],
             mfg_date=mfg_date,
@@ -441,6 +441,12 @@ def api_create_batch():
             qty_available=0,  # Start with 0, stock added via adjustments
             status='active'
         )
+
+        # Set optional fields
+        if data.get('product_id'):
+            batch.product_id = int(data['product_id'])
+        if data.get('location_id'):
+            batch.location_id = str(data['location_id'])
 
         # Set created_date if provided
         if data.get('created_date'):
@@ -455,6 +461,86 @@ def api_create_batch():
             'batch_id': batch.id
         })
 
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/batches/<int:batch_id>', methods=['GET'])
+@login_required
+def api_get_batch(batch_id):
+    """Get a single batch by ID"""
+    try:
+        batch = InventoryBatch.query.get(batch_id)
+        if not batch:
+            return jsonify({'error': 'Batch not found'}), 404
+
+        return jsonify({
+            'success': True,
+            'batch': {
+                'id': batch.id,
+                'batch_name': batch.batch_name,
+                'product_id': batch.product_id,
+                'location_id': batch.location_id,
+                'product_name': batch.product.name if batch.product else 'Not Assigned',
+                'location_name': batch.location.name if batch.location else 'Not Assigned',
+                'created_date': batch.created_date.isoformat() if batch.created_date else None,
+                'mfg_date': batch.mfg_date.isoformat() if batch.mfg_date else None,
+                'expiry_date': batch.expiry_date.isoformat() if batch.expiry_date else None,
+                'qty_available': float(batch.qty_available or 0),
+                'unit_cost': float(batch.unit_cost or 0),
+                'selling_price': float(batch.selling_price or 0) if batch.selling_price else None,
+                'status': batch.status,
+                'is_expired': batch.is_expired,
+                'days_to_expiry': batch.days_to_expiry
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/batches/<int:batch_id>', methods=['PUT'])
+@login_required
+def api_update_batch(batch_id):
+    """Update an existing batch"""
+    try:
+        from datetime import datetime
+        batch = InventoryBatch.query.get(batch_id)
+        if not batch:
+            return jsonify({'error': 'Batch not found'}), 404
+
+        data = request.get_json()
+
+        # Update fields if provided
+        if 'batch_name' in data:
+            # Check for uniqueness if name changed
+            if data['batch_name'] != batch.batch_name:
+                existing = InventoryBatch.query.filter_by(batch_name=data['batch_name']).first()
+                if existing:
+                    return jsonify({'error': 'Batch name must be unique'}), 400
+            batch.batch_name = data['batch_name']
+
+        if 'mfg_date' in data:
+            batch.mfg_date = datetime.strptime(data['mfg_date'], '%Y-%m-%d').date()
+        if 'expiry_date' in data:
+            batch.expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date()
+        if 'created_date' in data:
+            batch.created_date = datetime.strptime(data['created_date'], '%Y-%m-%d').date()
+        if 'unit_cost' in data:
+            batch.unit_cost = float(data['unit_cost'] or 0)
+        if 'selling_price' in data:
+            batch.selling_price = float(data['selling_price']) if data['selling_price'] else None
+        if 'product_id' in data:
+            batch.product_id = int(data['product_id']) if data['product_id'] else None
+        if 'location_id' in data:
+            batch.location_id = str(data['location_id']) if data['location_id'] else None
+        if 'status' in data:
+            batch.status = data['status']
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Batch updated successfully'
+        })
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
