@@ -175,6 +175,28 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Payment Section -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6><i class="fas fa-credit-card"></i> Payment Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <label class="form-label required">Payment Method</label>
+                                <select name="payment_method" class="form-select" required>
+                                    <option value="">-- Select Payment Method --</option>
+                                    <option value="cash" {% if invoice.payment_method == 'cash' %}selected{% endif %}>Cash</option>
+                                    <option value="card" {% if invoice.payment_method == 'card' %}selected{% endif %}>Card</option>
+                                    <option value="upi" {% if invoice.payment_method == 'upi' %}selected{% endif %}>UPI</option>
+                                    <option value="cheque" {% if invoice.payment_method == 'cheque' %}selected{% endif %}>Cheque</option>
+                                    <option value="mixed" {% if invoice.payment_method == 'mixed' %}selected{% endif %}>Mixed Payment</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="col-lg-4">
