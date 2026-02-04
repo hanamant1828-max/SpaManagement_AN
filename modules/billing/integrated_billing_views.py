@@ -2405,6 +2405,55 @@ def update_integrated_invoice(invoice_id):
         
         services_data = processed_services
 
+        # Recalculate tax and totals
+        cgst_rate = float(request.form.get('cgst_rate', 9)) / 100
+        sgst_rate = float(request.form.get('sgst_rate', 9)) / 100
+        igst_rate = float(request.form.get('igst_rate', 0)) / 100
+        is_interstate = request.form.get('is_interstate') == 'on'
+
+        # Process services for actual amounts
+        processed_services = []
+        for s in services_data:
+            service = Service.query.get(s['service_id'])
+            if service:
+                # Basic tax info for calculations
+                gst_pct = service.gst_percentage or 18.0
+                tax_divisor = 1 + (gst_pct / 100)
+                
+                # Prices are usually MRP (inclusive of GST)
+                # But here we need to follow the logic of create/update
+                unit_price = service.price
+                quantity = s['quantity']
+                base_amount = unit_price * quantity
+                
+                # Deductions
+                deduction = s.get('deduction_amount', 0.0)
+                is_pkg = s.get('is_package_deduction', False)
+                
+                final_amount = base_amount - (deduction if is_pkg else 0)
+                
+                # Calculate tax component
+                tax_amt = final_amount - (final_amount / tax_divisor)
+                
+                s['base_amount'] = final_amount - tax_amt
+                s['tax_amount'] = tax_amt
+                s['gst_percentage'] = gst_pct
+                s['unit_price'] = unit_price
+                
+                # CGST/SGST/IGST breakdown
+                if is_interstate:
+                    s['igst_amount'] = tax_amt
+                    s['cgst_amount'] = 0
+                    s['sgst_amount'] = 0
+                else:
+                    s['igst_amount'] = 0
+                    s['cgst_amount'] = tax_amt / 2
+                    s['sgst_amount'] = tax_amt / 2
+                    
+                processed_services.append(s)
+        
+        services_data = processed_services
+
         # Recalculate amounts (accounting for package deductions)
         services_subtotal = 0
         total_package_deductions = 0
@@ -2413,7 +2462,6 @@ def update_integrated_invoice(invoice_id):
             if service:
                 # Use original MRP price for staff revenue calculation
                 original_price = service.price * s['quantity']
-                s['unit_price'] = service.price # Ensure unit_price is available
                 
                 deduction = s.get('deduction_amount', 0.0)
                 is_pkg_deduction = s.get('is_package_deduction', False)
@@ -2431,17 +2479,7 @@ def update_integrated_invoice(invoice_id):
 
         gross_subtotal = services_subtotal + inventory_subtotal
 
-        # Update invoice fields
-        invoice.services_subtotal = services_subtotal
-        invoice.inventory_subtotal = inventory_subtotal
-        invoice.gross_subtotal = gross_subtotal
-
-        # Recalculate tax and totals
-        cgst_rate = float(request.form.get('cgst_rate', 9)) / 100
-        sgst_rate = float(request.form.get('sgst_rate', 9)) / 100
-        igst_rate = float(request.form.get('igst_rate', 0)) / 100
-        is_interstate = request.form.get('is_interstate') == 'on'
-
+        # Recalculate tax and totals (values already parsed above)
         discount_type = request.form.get('discount_type', 'amount')
         discount_value = float(request.form.get('discount_value', 0))
 
