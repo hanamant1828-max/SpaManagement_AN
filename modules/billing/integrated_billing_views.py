@@ -2793,6 +2793,10 @@ def generate_invoice_preview():
             'igst_amount': igst_amount
         }
 
+        # Get business logo
+        business_logo_setting = SystemSetting.query.filter_by(key='business_logo').first()
+        business_logo = business_logo_setting.value if business_logo_setting else None
+
         # Render the SAME template used for printing
         preview_html = render_template('professional_invoice_print.html',
                                      invoice=mock_invoice,
@@ -2800,7 +2804,7 @@ def generate_invoice_preview():
                                      tax_details=tax_details,
                                      gst_config=gst_config,
                                      amount_in_words=number_to_words(grand_total),
-                                     business_logo=None)
+                                     business_logo=business_logo)
 
         return jsonify({
             'success': True,
