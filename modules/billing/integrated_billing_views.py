@@ -2411,7 +2411,10 @@ def update_integrated_invoice(invoice_id):
         for s in services_data:
             service = Service.query.get(s['service_id'])
             if service:
+                # Use original MRP price for staff revenue calculation
                 original_price = service.price * s['quantity']
+                s['unit_price'] = service.price # Ensure unit_price is available
+                
                 deduction = s.get('deduction_amount', 0.0)
                 is_pkg_deduction = s.get('is_package_deduction', False)
                 if is_pkg_deduction and deduction > 0:
@@ -2419,7 +2422,8 @@ def update_integrated_invoice(invoice_id):
                     services_subtotal += original_price - deduction
                 else:
                     services_subtotal += original_price
-
+        
+        # Calculate product subtotal correctly
         inventory_subtotal = sum(
             item['unit_price'] * item['quantity']
             for item in inventory_data
