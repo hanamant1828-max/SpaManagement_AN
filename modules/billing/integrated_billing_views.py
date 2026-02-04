@@ -623,10 +623,10 @@ def integrated_billing(customer_id=None):
 
     # Get system settings for logo and business name
     from models import SystemSetting
-    business_logo = SystemSetting.query.filter_by(key='business_logo').first()
-    business_logo = business_logo.value if business_logo else None
-    business_name = SystemSetting.query.filter_by(key='business_name').first()
-    business_name = business_name.value if business_name else 'Spa & Salon Suite'
+    business_logo_setting = SystemSetting.query.filter_by(key='business_logo').first()
+    business_logo = business_logo_setting.value if business_logo_setting else None
+    business_name_setting = SystemSetting.query.filter_by(key='business_name').first()
+    business_name = business_name_setting.value if business_name_setting else 'HANAMANT SPA & SALON'
 
     return render_template('integrated_billing.html',
                          customers=customers,
@@ -2210,6 +2210,10 @@ def integrated_invoice_detail(invoice_id):
         business_logo_setting = SystemSetting.query.filter_by(key='business_logo').first()
         business_logo = business_logo_setting.value if business_logo_setting else None
 
+        # Get business name
+        business_name_setting = SystemSetting.query.filter_by(key='business_name').first()
+        business_name = business_name_setting.value if business_name_setting else 'HANAMANT SPA & SALON'
+
         # Check if print mode
         print_mode = request.args.get('print') == 'true'
         # Use print template if in print mode
@@ -2225,6 +2229,7 @@ def integrated_invoice_detail(invoice_id):
                              customer=customer,
                              gst_config=gst_config,
                              business_logo=business_logo,
+                             business_name=business_name,
                              amount_in_words=amount_in_words,
                              total_amount_words=number_to_words)
 
