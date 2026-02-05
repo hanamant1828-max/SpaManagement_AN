@@ -2425,10 +2425,8 @@ def update_integrated_invoice(invoice_id):
         cgst_rate = float(request.form.get('cgst_rate', 9)) / 100
         sgst_rate = float(request.form.get('sgst_rate', 9)) / 100
         igst_rate = float(request.form.get('igst_rate', 0)) / 100
+        total_gst_rate = igst_rate if is_interstate else (cgst_rate + sgst_rate)
 
-        # Process services for actual amounts (already done above)
-        # We can remove the redundant processing loop
-        
         # Recalculate amounts (accounting for package deductions)
         services_subtotal = 0
         total_package_deductions = 0
@@ -2466,16 +2464,19 @@ def update_integrated_invoice(invoice_id):
 
         net_subtotal = max(0, gross_subtotal - discount_amount)
 
-        total_gst_rate = igst_rate if is_interstate else (cgst_rate + sgst_rate)
-        tax_amount = net_subtotal * total_gst_rate
+        # Unified GST Inclusive logic: Extract tax from net_subtotal
+        # tax_amount = net_subtotal * (total_gst_rate / (1 + total_gst_rate))
+        # But wait, the standard formula for inclusive tax is: Tax = MRP - (MRP / (1 + Rate))
+        tax_amount = net_subtotal - (net_subtotal / (1 + total_gst_rate))
 
         additional_charges = float(request.form.get('additional_charges', 0))
         tips_amount = float(request.form.get('tips_amount', 0))
 
-        total_amount = net_subtotal + tax_amount + additional_charges + tips_amount
+        total_amount = net_subtotal + additional_charges + tips_amount
 
         # Update invoice
-        invoice.net_subtotal = net_subtotal
+        invoice.net_subtotal = net_subtotal - tax_amount
+        invoice.gross_subtotal = gross_subtotal # Keep track of original MRP total
         invoice.discount_amount = discount_amount
         invoice.tax_amount = tax_amount
         invoice.additional_charges = additional_charges

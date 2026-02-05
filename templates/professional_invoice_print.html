@@ -337,7 +337,7 @@
             tax_details.get('sgst_rate', 0) + tax_details.get('cgst_rate', 0) %}
             {% endif %}
 
-            <!-- PRODUCTS SECTION (GST Inclusive - showing MRP minus GST) -->
+            <!-- PRODUCTS SECTION (GST Inclusive) -->
             {% if products|length > 0 %}
             <div class="section-header">
                 PRODUCTS (MRP includes GST - base price calculated by
@@ -430,10 +430,11 @@
             </table>
             {% endif %}
 
-            <!-- SERVICES SECTION (GST Exclusive) -->
+            <!-- SERVICES SECTION (GST Inclusive) -->
             {% if services|length > 0 %}
             <div class="section-header">
-                SERVICES (MRP is base price, GST added separately)
+                SERVICES (MRP includes GST - base price calculated by
+                subtracting GST)
             </div>
             <table class="items-table">
                 <thead>
@@ -450,13 +451,14 @@
                 </thead>
                 <tbody>
                     {% set service_subtotal = namespace(base=0, gst=0, total=0)
-                    %} {% for item in services %} {% set base_price =
+                    %} {% for item in services %} {% set mrp_price =
                     item.selling_price or item.unit_price %} {# For SERVICES:
-                    GST is EXCLUSIVE - add GST on top of base price #} {% set
-                    gst_per_unit = base_price * (gst_rate/100) %} {% set
+                    GST is INCLUSIVE - subtract GST to get base price #} {% set
+                    base_price = mrp_price / (1 + gst_rate/100) %} {% set
+                    gst_per_unit = mrp_price - base_price %} {% set
                     total_base_amount = base_price * item.quantity %} {% set
                     total_gst_amount = gst_per_unit * item.quantity %} {% set
-                    total_amount = total_base_amount + total_gst_amount %} {%
+                    total_amount = mrp_price * item.quantity %} {%
                     set service_subtotal.base = service_subtotal.base +
                     total_base_amount %} {% set service_subtotal.gst =
                     service_subtotal.gst + total_gst_amount %} {% set
@@ -557,15 +559,11 @@
                     <div style="margin-top: 10px; font-size: 11px">
                         <p>1. Payment is due as per agreed terms.</p>
                         <p>
-                            2. Products: MRP includes GST. Base price shown
+                            2. All items: MRP includes GST. Base price shown
                             after subtracting GST.
                         </p>
-                        <p>
-                            3. Services: Prices exclusive of GST, GST added
-                            separately.
-                        </p>
-                        <p>4. This is a computer-generated invoice.</p>
-                        <p>5. For queries, contact our customer service.</p>
+                        <p>3. This is a computer-generated invoice.</p>
+                        <p>4. For queries, contact our customer service.</p>
                     </div>
                 </div>
 
