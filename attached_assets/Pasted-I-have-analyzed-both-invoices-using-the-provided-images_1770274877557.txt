@@ -1,0 +1,48 @@
+I have analyzed both invoices using the provided images and backend code and identified inconsistencies in the tax calculation logic.
+
+Findings from the Invoices
+
+Invoice 1 (Gel Manicure & Shampoo)
+
+Services are treated as GST Exclusive (GST added on top of the base price).
+
+Gel Manicure base price is ₹35.00, with 15% GST (₹5.25) added, resulting in ₹40.25.
+
+The grand total is ₹55.00, but the subtotal before GST shows ₹49.66, indicating a calculation mismatch.
+
+Invoice 2 (Shampoo & Cleanup)
+
+Products (Shampoo) are treated as GST Inclusive, where GST is extracted from the MRP.
+
+MRP ₹20.00 → Base ₹17.39 + GST ₹2.61 (15%).
+
+Services (Cleanup) are treated as GST Exclusive.
+
+Base ₹250.00 + GST ₹37.50 = ₹287.50.
+
+The displayed grand total is ₹270.00, which is less than the service total alone, clearly indicating a major calculation issue in either the template or backend logic.
+
+Root Cause Analysis
+
+Services are currently handled as GST Exclusive.
+
+Products are handled as GST Inclusive.
+
+This inconsistency leads to incorrect subtotals and grand totals.
+
+Additionally, the variable total_gst_rate was missing in the invoice update route, causing errors during edit mode.
+
+Resolution Implemented
+
+Unified GST Logic: Both services and products are now treated as GST Inclusive. GST is consistently extracted from the MRP for all items.
+
+Backend Fix: Updated both invoice creation and edit routes to use the same tax calculation logic and ensured all required variables (including total_gst_rate) are properly defined.
+
+Template Update: Modified the invoice print template to display both services and products as “GST Inclusive.”
+
+Calculation Correction: Fixed subtotal and tax summary calculations in the invoice footer to ensure they accurately reflect the itemized data.
+
+Final Outcome
+
+The invoice module now behaves consistently across create, edit, and save & print modes.
+Both services and products follow the same GST Inclusive model, ensuring that the listed price is exactly what the customer pays and that all totals are calculated correctly.
