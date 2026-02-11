@@ -99,12 +99,26 @@
                             <label class="form-label">Reference</label>
                             <input type="text" class="form-control" id="consumptionReference" placeholder="e.g., Service Order #123">
                         </div>
-                        <div class="col-md-8 mb-3">
+                        <div class="col-md-12 mb-3">
                             <label class="form-label">Batch *</label>
-                            <select class="form-select" id="consumptionBatch" required>
-                                <option value="">Select Batch</option>
-                            </select>
-                            <div class="form-text" id="stockInfo"></div>
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <div style="flex: 1; min-width: 200px;">
+                                    <select class="form-select" id="consumptionBatch" required onchange="updateStockInfo()">
+                                        <option value="">Select Batch</option>
+                                    </select>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="form-text mt-0" id="stockInfo" style="white-space: nowrap;"></div>
+                                    <div id="consumptionStockDetails" class="d-flex align-items-center gap-3" style="display: none !important;">
+                                        <span class="badge bg-light text-dark border">
+                                            Avail: <span id="consAvailQty">0</span> <span id="consAvailUnit">pcs</span>
+                                        </span>
+                                        <span class="badge bg-light text-dark border">
+                                            Exp: <span id="consExpDate">N/A</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Available Stock</label>
@@ -454,6 +468,7 @@
         const batchId = document.getElementById('consumptionBatch').value;
         const batchSelect = document.getElementById('consumptionBatch');
         const stockInfo = document.getElementById('stockInfo');
+        const stockDetails = document.getElementById('consumptionStockDetails');
         const availableStockDisplay = document.getElementById('availableStockDisplay');
         const availableStockUnit = document.getElementById('availableStockUnit');
 
@@ -467,12 +482,19 @@
                 const currentStock = selectedOption.dataset.currentQty || 0;
                 const unit = selectedOption.dataset.unit || 'pcs';
                 const productName = selectedOption.dataset.productName || 'Unknown Product';
+                const expiry = selectedOption.textContent.split('|').pop().trim().replace('Exp:', '').trim();
 
                 console.log('📊 Stock data:', { currentStock, unit, productName });
 
                 stockInfo.textContent = `Product: ${productName}`;
                 availableStockDisplay.value = currentStock;
                 availableStockUnit.textContent = unit;
+                
+                // Update horizontal details
+                document.getElementById('consAvailQty').textContent = parseFloat(currentStock).toFixed(2);
+                document.getElementById('consAvailUnit').textContent = unit;
+                document.getElementById('consExpDate').textContent = expiry;
+                stockDetails.style.setProperty('display', 'flex', 'important');
 
                 stockInfo.className = parseFloat(currentStock) > 0 ? 'form-text text-success' : 'form-text text-danger';
 
@@ -487,6 +509,7 @@
             stockInfo.textContent = '';
             availableStockDisplay.value = '';
             availableStockUnit.textContent = 'pcs';
+            if (stockDetails) stockDetails.style.setProperty('display', 'none', 'important');
             document.getElementById('consumptionQuantity').removeAttribute('max');
         }
     }
