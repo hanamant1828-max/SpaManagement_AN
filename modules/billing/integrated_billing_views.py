@@ -603,6 +603,7 @@ def integrated_billing(customer_id=None):
                     'igst_rate': invoice.igst_rate if hasattr(invoice, 'igst_rate') else 0,
                     'is_interstate': invoice.is_interstate if hasattr(invoice, 'is_interstate') else False,
                     'payment_terms': invoice.payment_terms if hasattr(invoice, 'payment_terms') else 'immediate',
+                    'payment_method': invoice.payment_method if hasattr(invoice, 'payment_method') else 'cash',
                     'notes': invoice.notes if hasattr(invoice, 'notes') and invoice.notes else ''
                 }
 
