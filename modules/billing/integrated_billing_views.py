@@ -603,8 +603,18 @@ def integrated_billing(customer_id=None):
                     'igst_rate': invoice.igst_rate if hasattr(invoice, 'igst_rate') else 0,
                     'is_interstate': invoice.is_interstate if hasattr(invoice, 'is_interstate') else False,
                     'payment_terms': invoice.payment_terms if hasattr(invoice, 'payment_terms') else 'immediate',
-                    'notes': invoice.notes if hasattr(invoice, 'notes') else ''
+                    'notes': invoice.notes if hasattr(invoice, 'notes') and invoice.notes else ''
                 }
+
+                # Clean notes if it contains JSON string (fix for specific bug)
+                if edit_invoice_data['notes'] and edit_invoice_data['notes'].startswith('{'):
+                    try:
+                        import json
+                        # If it's a JSON string, we might want to extract a specific field or just clear it
+                        # For now, let's keep it empty if it looks like the internal GST JSON that was accidentally saved
+                        edit_invoice_data['notes'] = ""
+                    except:
+                        pass
 
                 # Override customer_id for edit mode
                 if not customer_id:

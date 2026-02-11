@@ -1178,7 +1178,7 @@ textarea.form-control {
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="form-label">Notes</label>
-                                <textarea class="form-control" name="notes" rows="3" placeholder="Add invoice notes...">{{ edit_invoice_data.notes if edit_mode and edit_invoice_data else '' }}</textarea>
+                                <textarea class="form-control" name="notes" rows="3" placeholder="Add invoice notes...">{{ edit_invoice_data.notes|safe if edit_mode and edit_invoice_data else '' }}</textarea>
                             </div>
                         </div>
                     </div>
