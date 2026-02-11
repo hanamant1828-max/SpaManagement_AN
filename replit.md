@@ -1,61 +1,53 @@
-# Spa & Salon Suite Management System
+# Spa & Salon Suite
 
 ## Overview
-This project is a comprehensive Spa & Salon Management System built with Flask and Python. It aims to streamline spa/salon operations by managing staff, clients, appointments, billing, inventory, and more. The system provides real-time business metrics, robust client and staff management, dynamic scheduling, integrated billing with various package options, and a public-facing website. Its purpose is to enhance user experience, automate processes, and improve operational efficiency and profitability.
+A comprehensive Spa & Salon Management System built with Flask. Features include client management, appointment booking, staff management, billing, inventory, packages/memberships, expense tracking, reports, and more.
+
+## Recent Changes
+- 2026-02-11: Migrated project to Replit environment. Cleaned up duplicate workflows and requirements.txt. Configured deployment settings.
+
+## Project Architecture
+- **Framework**: Flask (Python 3.11)
+- **Database**: SQLite (stored in `hanamantdatabase/` folder)
+- **Authentication**: Flask-Login with session-based auth
+- **Frontend**: Server-side rendered templates with Jinja2, Bootstrap CSS
+- **WSGI Server**: Gunicorn (production), Flask dev server (development via main.py)
+
+### Key Files
+- `app.py` - Main Flask application setup, database config, route registration
+- `main.py` - Entry point for running the application
+- `models.py` - SQLAlchemy database models
+- `routes.py` - Additional route definitions
+- `forms.py` - WTForms form definitions
+- `utils.py` - Utility functions
+
+### Module Structure
+The app uses a modular structure under `modules/`:
+- `modules/auth/` - Authentication views
+- `modules/dashboard/` - Dashboard views
+- `modules/clients/` - Client management
+- `modules/services/` - Service management
+- `modules/bookings/` - Appointment booking
+- `modules/staff/` - Staff management & shift scheduling
+- `modules/billing/` - Billing & invoicing
+- `modules/inventory/` - Inventory management
+- `modules/packages/` - Packages & memberships
+- `modules/expenses/` - Expense tracking
+- `modules/reports/` - Reporting
+- `modules/settings/` - System settings
+- `modules/notifications/` - Notifications
+- `modules/checkin/` - Client check-in (with face recognition)
+
+### Templates
+HTML templates are in `templates/` using Jinja2 with Bootstrap.
+
+### Static Files
+CSS, JS, and uploads in `static/`.
 
 ## User Preferences
-- Follow existing Flask conventions and project structure
-- Use SQLAlchemy for all database operations
-- Maintain modular architecture with separate view files
-- Keep templates organized by feature module
-- Use Bootstrap for UI components
-- Implement proper error handling and logging
+- IST (Asia/Kolkata) timezone for all datetime operations
+- Currency formatting via utils module
 
-## System Architecture
-The application uses Flask and SQLAlchemy, following a modular design with features separated into distinct modules.
-
-**UI/UX Decisions:**
-- Employs Bootstrap 5 for a responsive and consistent user interface.
-- **Button Styling Standard (In Progress):** Using Bootstrap solid button classes for consistent styling:
-  - Primary (blue btn-primary) - Main actions like Edit, Apply Filter
-  - Success (green btn-success) - Add/Create actions
-  - Warning (yellow/orange btn-warning) - Export actions
-  - Danger (red btn-danger) - Delete actions
-  - Info (cyan btn-info) - View/Preview actions
-  - Secondary (gray btn-secondary) - Back/Clear/Cancel actions
-- Utilizes distinct styling for student offers and color-coded elements for package types.
-- Interactive modals are used for displaying detailed information.
-- The Unaki booking system visually highlights holidays and off-days on the calendar.
-- **Real-time Validation & Conflict Checking:** The bulk booking modal features a modern dropdown time picker, real-time conflict checking (staff and customer conflicts), smart end time calculation, and visual validation indicators with animated alerts.
-
-**Technical Implementations:**
-- **Core Modules:** Dashboard, Client Management, Staff Management, Shift Scheduling, Appointment Booking (Unaki integration), Integrated Billing, Service Catalog, Package Management (Prepaid, Service, Memberships, Student Offers, Kitty Party), Inventory, Check-In, Reporting, Notifications, User Roles & Permissions, User Management, Face Recognition System, and a Public Website Module.
-- **Public Website Module:** A complete public-facing website with a homepage, services page (categorized listings), online booking (creates UnakiBooking records, auto-creates Customer records), contact page, and gallery. It is mobile-responsive using Bootstrap 5 and integrates with existing database models.
-- **Face Recognition System:** InsightFace-based biometric authentication for customer registration and check-in, supporting webcam capture and CPU-based ONNXRuntime inference.
-- **User Management System:** Administrative interface for managing users, roles, and permissions, including CRUD operations, access control matrix, and multi-layered authorization.
-- **Package Management:** Implements type-specific billing methods for various package types.
-- **Billing-Package Integration:** API for real-time package benefit verification and bidirectional data synchronization. Invoice items now store complete package benefit metadata (package_name, package_type, benefit_type, benefit_description) for persistent tracking and display.
-- **Automatic Database Migrations:** Ensures database schema is up-to-date on startup.
-- **Session Management:** Utilizes Flask's session management.
-- **Timezone Management:** Comprehensive IST timezone utilities using `pytz` for timestamps.
-- **12-Hour AM/PM Format:** Implemented across all visible time fields with robust input validation.
-- **Invoice Edit Mode Package Preservation (Dec 2025):** Fixed critical bug where editing saved invoices lost package discount information. Uses durable row data attributes (`lockedFinalAmount`, `lockedDeduction`, `lockedServiceId`, `lockedQuantity`, `isPackageLocked`) to preserve package benefit data across recalculation cycles. When service/quantity remain unchanged, the saved NET amount is used directly; when changed, locked attributes are cleared to allow fresh recalculation.
-
-**System Design Choices:**
-- **Database:** Defaults to SQLite for local development (`hanamantdatabase/workspace.db`), with optional PostgreSQL support.
-- **Server:** Gunicorn serves the application on port 5000.
-- **Deployment:** Configured for Replit autoscale deployment and Vercel.
-- **Authentication:** Managed via Flask-Login.
-- **Forms:** Implemented using Flask-WTF and WTForms.
-
-## External Dependencies
-- **Backend Framework:** Flask
-- **ORM:** SQLAlchemy
-- **Database:** SQLite, PostgreSQL
-- **Web Server:** Gunicorn
-- **Authentication:** Flask-Login
-- **Forms:** Flask-WTF, WTForms
-- **Face Recognition:** InsightFace, ONNXRuntime, OpenCV-Python
-- **Timezone:** pytz
-- **Utility Libraries:** Pandas, OpenAI, BeautifulSoup4, Requests
-- **WhatsApp Notifications:** Twilio (for appointment confirmations, reminders, and custom messaging)
+## Running
+- Development: `python main.py` (Flask dev server on port 5000)
+- Production: `gunicorn --bind 0.0.0.0:5000 main:app`
