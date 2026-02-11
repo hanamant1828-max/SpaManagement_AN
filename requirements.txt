@@ -26,3 +26,10 @@ twilio
 weasyprint
 werkzeug
 wtforms
+beautifulsoup4
+flask-dance
+numpy
+openpyxl
+Pillow
+pytz
+twilio
