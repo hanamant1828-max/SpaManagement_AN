@@ -2485,6 +2485,8 @@ def update_integrated_invoice(invoice_id):
         total_amount = net_subtotal + additional_charges + tips_amount
 
         # Update invoice
+        invoice.payment_method = request.form.get('payment_method', 'cash')
+        invoice.notes = request.form.get('notes', '')
         invoice.net_subtotal = net_subtotal - tax_amount
         invoice.gross_subtotal = gross_subtotal # Keep track of original MRP total
         invoice.discount_amount = discount_amount
