@@ -1103,13 +1103,13 @@ textarea.form-control {
                             <div class="form-group">
                                 <label class="form-label">Payment Method <span class="text-danger">*</span></label>
                                 <select class="form-select form-select-lg" id="paymentMethod" name="payment_method" required onchange="togglePaymentMethod()">
-                                    <option value="" selected>Select Payment Method</option>
-                                    <option value="cash">Cash</option>
-                                    <option value="card">Credit/Debit Card</option>
-                                    <option value="upi">UPI Payment</option>
-                                    <option value="cheque">Cheque</option>
-                                    <option value="wallet">Digital Wallet</option>
-                                    <option value="mixed">Mixed Payment</option>
+                                    <option value="">Select Payment Method</option>
+                                    <option value="cash" {% if edit_mode and edit_invoice_data and edit_invoice_data.payment_method == 'cash' %}selected{% endif %}>Cash</option>
+                                    <option value="card" {% if edit_mode and edit_invoice_data and edit_invoice_data.payment_method == 'card' %}selected{% endif %}>Credit/Debit Card</option>
+                                    <option value="upi" {% if edit_mode and edit_invoice_data and edit_invoice_data.payment_method == 'upi' %}selected{% endif %}>UPI Payment</option>
+                                    <option value="cheque" {% if edit_mode and edit_invoice_data and edit_invoice_data.payment_method == 'cheque' %}selected{% endif %}>Cheque</option>
+                                    <option value="wallet" {% if edit_mode and edit_invoice_data and edit_invoice_data.payment_method == 'wallet' %}selected{% endif %}>Digital Wallet</option>
+                                    <option value="mixed" {% if edit_mode and edit_invoice_data and edit_invoice_data.payment_method == 'mixed' %}selected{% endif %}>Mixed Payment</option>
                                 </select>
                             </div>
                             <div class="form-group" id="chequeNumberField" style="display: none;">
@@ -1160,25 +1160,25 @@ textarea.form-control {
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label class="form-label">Discount Value</label>
-                                <input type="number" class="form-control" name="discount_value" value="0" min="0" step="0.01" oninput="updateCalculations()">
+                                <input type="number" class="form-control" name="discount_value" value="{{ edit_invoice_data.discount_amount if edit_mode and edit_invoice_data else '0' }}" min="0" step="0.01" oninput="updateCalculations()">
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label class="form-label">Additional Charges</label>
-                                <input type="number" class="form-control" name="additional_charges" value="0" min="0" step="0.01" oninput="updateCalculations()">
+                                <input type="number" class="form-control" name="additional_charges" value="{{ edit_invoice_data.additional_charges if edit_mode and edit_invoice_data else '0' }}" min="0" step="0.01" oninput="updateCalculations()">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="form-label">Tips Amount</label>
-                                <input type="number" class="form-control" name="tips_amount" value="0" min="0" step="0.01" oninput="updateCalculations()">
+                                <input type="number" class="form-control" name="tips_amount" value="{{ edit_invoice_data.tips_amount if edit_mode and edit_invoice_data else '0' }}" min="0" step="0.01" oninput="updateCalculations()">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="form-label">Notes</label>
-                                <textarea class="form-control" name="notes" rows="3" placeholder="Add invoice notes..."></textarea>
+                                <textarea class="form-control" name="notes" rows="3" placeholder="Add invoice notes...">{{ edit_invoice_data.notes if edit_mode and edit_invoice_data else '' }}</textarea>
                             </div>
                         </div>
                     </div>
