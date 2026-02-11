@@ -192,11 +192,12 @@
                                     <option value="upi" {% if invoice.payment_method|lower == 'upi' %}selected{% endif %}>UPI</option>
                                     <option value="cheque" {% if invoice.payment_method|lower == 'cheque' %}selected{% endif %}>Cheque</option>
                                     <option value="mixed" {% if invoice.payment_method|lower == 'mixed' %}selected{% endif %}>Mixed Payment</option>
+                                    <option value="unaki" {% if invoice.payment_method|lower == 'unaki' %}selected{% endif %}>Unaki</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Notes</label>
-                                <textarea name="notes" class="form-control" rows="1">{{ invoice.notes or '' }}</textarea>
+                                <textarea name="notes" class="form-control" rows="1">{{ invoice.notes if invoice.notes else '' }}</textarea>
                             </div>
                         </div>
                     </div>
