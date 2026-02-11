@@ -1,0 +1,121 @@
+I have a serious data binding issue in my Edit Invoice page.
+
+🚨 Problem 1: Payment Method Always Shows "Cash"
+
+When editing an invoice:
+
+The dropdown always shows "Cash"
+
+But the database contains the correct saved value
+
+This only happens in Edit mode
+
+🚨 Problem 2: Notes Field Not Loading / Not Updating
+
+Notes textarea does not show saved notes
+
+Even after update, notes are not saved properly
+
+🎯 I want you to:
+Step 1: Debug API Response
+
+Add console log in frontend after fetching invoice:
+
+console.log("Invoice Data:", invoiceData);
+
+
+Verify it contains:
+
+paymentMethod
+
+notes
+
+If not, fix backend GET invoice API to include:
+
+select paymentMethod, notes from invoices
+
+Step 2: Fix Controlled Form Binding (VERY IMPORTANT)
+
+In Edit Invoice form:
+
+DO NOT use:
+
+defaultValue="Cash"
+
+
+DO NOT use:
+
+selected
+
+
+Instead use controlled component:
+
+<select
+  name="paymentMethod"
+  value={formData.paymentMethod || ""}
+  onChange={(e) =>
+    setFormData({ ...formData, paymentMethod: e.target.value })
+  }
+>
+
+
+For Notes:
+
+<textarea
+  name="notes"
+  value={formData.notes || ""}
+  onChange={(e) =>
+    setFormData({ ...formData, notes: e.target.value })
+  }
+/>
+
+Step 3: Proper useEffect Loading
+
+Make sure invoice data is set AFTER API loads:
+
+useEffect(() => {
+  if (invoiceData) {
+    setFormData({
+      ...invoiceData,
+      paymentMethod: invoiceData.paymentMethod || "",
+      notes: invoiceData.notes || ""
+    });
+  }
+}, [invoiceData]);
+
+Step 4: Prevent State Reset Bug
+
+Check that somewhere in component there is NOT:
+
+setFormData(initialState)
+
+
+after loading invoice.
+
+Make sure default values (Cash, Immediate Payment, etc.) are ONLY set when creating new invoice:
+
+if (!isEditMode) {
+  setFormData({
+    paymentMethod: "Cash",
+    ...
+  });
+}
+
+Step 5: Fix Update API
+
+Ensure update API includes:
+
+await Invoice.update({
+  paymentMethod: req.body.paymentMethod,
+  notes: req.body.notes
+}, { where: { id: req.params.id } });
+
+✅ Expected Result
+
+When editing invoice → correct payment method loads
+
+Notes load correctly
+
+Updating invoice saves both fields
+
+No default value overrides existing data

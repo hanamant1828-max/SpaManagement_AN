@@ -2488,6 +2488,9 @@ def update_integrated_invoice(invoice_id):
         # Update invoice
         invoice.payment_method = request.form.get('payment_method', 'cash')
         invoice.notes = request.form.get('notes', '')
+        
+        # Log update for debugging
+        app.logger.info(f"Updating invoice {invoice_id}: payment_method={invoice.payment_method}, notes={invoice.notes}")
         invoice.net_subtotal = net_subtotal - tax_amount
         invoice.gross_subtotal = gross_subtotal # Keep track of original MRP total
         invoice.discount_amount = discount_amount

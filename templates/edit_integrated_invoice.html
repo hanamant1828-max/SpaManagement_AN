@@ -187,13 +187,13 @@
                                 <label class="form-label required">Payment Method</label>
                                 <select name="payment_method" class="form-select" required>
                                     <option value="">-- Select Payment Method --</option>
-                                    <option value="cash" {% if invoice.payment_method|lower == 'cash' or invoice.payment_methods|lower == 'cash' %}selected{% endif %}>Cash</option>
-                                    <option value="card" {% if invoice.payment_method|lower == 'card' or invoice.payment_methods|lower == 'card' %}selected{% endif %}>Card</option>
-                                    <option value="upi" {% if invoice.payment_method|lower == 'upi' or invoice.payment_methods|lower == 'upi' %}selected{% endif %}>UPI</option>
-                                    <option value="cheque" {% if invoice.payment_method|lower == 'cheque' or invoice.payment_methods|lower == 'cheque' %}selected{% endif %}>Cheque</option>
-                                    <option value="mixed" {% if invoice.payment_method|lower == 'mixed' or invoice.payment_methods|lower == 'mixed' %}selected{% endif %}>Mixed Payment</option>
-                                    <option value="unaki" {% if invoice.payment_method|lower == 'unaki' or invoice.payment_methods|lower == 'unaki' %}selected{% endif %}>Unaki</option>
-                                    <option value="bank transfer" {% if invoice.payment_method|lower == 'bank transfer' or invoice.payment_methods|lower == 'bank transfer' %}selected{% endif %}>Bank Transfer</option>
+                                    <option value="cash" {% if invoice.payment_method|lower == 'cash' %}selected{% endif %}>Cash</option>
+                                    <option value="card" {% if invoice.payment_method|lower == 'card' %}selected{% endif %}>Card</option>
+                                    <option value="upi" {% if invoice.payment_method|lower == 'upi' %}selected{% endif %}>UPI</option>
+                                    <option value="cheque" {% if invoice.payment_method|lower == 'cheque' %}selected{% endif %}>Cheque</option>
+                                    <option value="mixed" {% if invoice.payment_method|lower == 'mixed' %}selected{% endif %}>Mixed Payment</option>
+                                    <option value="unaki" {% if invoice.payment_method|lower == 'unaki' %}selected{% endif %}>Unaki</option>
+                                    <option value="bank transfer" {% if invoice.payment_method|lower == 'bank transfer' %}selected{% endif %}>Bank Transfer</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
