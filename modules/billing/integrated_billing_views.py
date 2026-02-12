@@ -2296,11 +2296,78 @@ def update_integrated_invoice(invoice_id):
         # Get the invoice
         invoice = EnhancedInvoice.query.get_or_404(invoice_id)
 
+        # Validate inventory stock and handle batch updates for EDIT
+        for item in inventory_data:
+            batch = InventoryBatch.query.get(item['batch_id'])
+            if not batch or (batch.is_expired and not any(ei.batch_id == batch.id for ei in existing_items)):
+                return jsonify({'success': False, 'message': f'Invalid or expired batch for product ID {item["product_id"]}'})
+
+            # Calculate effective required stock
+            # We need to find if this product/batch was already in the old invoice
+            old_item = next((ei for ei in existing_items if ei.item_type == 'inventory' and ei.product_id == item['product_id'] and ei.batch_id == item['batch_id']), None)
+            old_qty = float(old_item.quantity) if old_item else 0.0
+            new_qty = float(item['quantity'])
+            diff = new_qty - old_qty
+
+            if diff > float(batch.qty_available):
+                return jsonify({
+                    'success': False,
+                    'message': f'Insufficient stock in batch {batch.batch_name}. Available: {batch.qty_available}, Additional Required: {diff}'
+                })
+
+        # Process batch stock updates
+        # 1. Restore old batch stock
+        for old_item in existing_items:
+            if old_item.item_type == 'inventory' and old_item.batch_id:
+                old_batch = InventoryBatch.query.get(old_item.batch_id)
+                if old_batch:
+                    from decimal import Decimal
+                    old_batch.qty_available = Decimal(str(old_batch.qty_available)) + Decimal(str(old_item.quantity))
+                    # Create audit log for restoration
+                    create_audit_log(
+                        batch_id=old_batch.id,
+                        product_id=old_batch.product_id,
+                        user_id=current_user.id,
+                        action_type='adjustment_add',
+                        quantity_delta=float(old_item.quantity),
+                        stock_before=float(old_batch.qty_available - Decimal(str(old_item.quantity))),
+                        stock_after=float(old_batch.qty_available),
+                        reference_type='invoice_edit_restore',
+                        reference_id=invoice.id,
+                        notes=f"Restored stock from edited invoice {invoice.invoice_number}"
+                    )
+
         # Delete existing invoice items individually to avoid FK constraint issues
-        existing_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
         for item in existing_items:
             db.session.delete(item)
-        db.session.flush()  # Ensure deletions are processed before inserting new items
+        db.session.flush()
+
+        # ... (rest of the existing logic for processing services and products) ...
+
+        for item_data in inventory_data:
+            batch = InventoryBatch.query.get(item_data['batch_id'])
+            product = InventoryProduct.query.get(item_data['product_id'])
+
+            if batch and product:
+                # Deduct new quantity from batch
+                from decimal import Decimal
+                qty_to_deduct = Decimal(str(item_data['quantity']))
+                old_qty_in_batch = batch.qty_available
+                batch.qty_available = batch.qty_available - qty_to_deduct
+
+                # Create audit log for deduction
+                create_audit_log(
+                    batch_id=batch.id,
+                    product_id=batch.product_id,
+                    user_id=current_user.id,
+                    action_type='consumption',
+                    quantity_delta=-float(qty_to_deduct),
+                    stock_before=float(old_qty_in_batch),
+                    stock_after=float(batch.qty_available),
+                    reference_type='invoice_edit_deduct',
+                    reference_id=invoice.id,
+                    notes=f"Deducted stock for edited invoice {invoice.invoice_number}"
+                )
 
         # Parse services data (same as create)
         services_data = []
