@@ -1499,8 +1499,10 @@ def create_professional_invoice():
                 'payment_methods_breakdown': payment_methods_dict if payment_method == 'mixed' else None
             }
 
-            invoice.notes = json.dumps(tax_breakdown)
             invoice.payment_methods = json.dumps(payment_methods_dict)
+            invoice.notes = request.form.get('notes', '')
+            invoice.payment_method = payment_method
+            invoice.tax_breakdown = json.dumps(tax_breakdown)
 
 
             db.session.add(invoice)

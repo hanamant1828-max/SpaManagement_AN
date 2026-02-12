@@ -1177,6 +1177,7 @@ class EnhancedInvoice(db.Model):
 
     # Payment tracking
     payment_status = db.Column(db.String(20), default='pending')  # pending, partial, paid, overdue
+    payment_method = db.Column(db.String(50), default='Cash') # Simplified for main dropdown binding
     payment_methods = db.Column(db.Text)  # JSON for multiple payment methods
     amount_paid = db.Column(db.Float, default=0.0)
     balance_due = db.Column(db.Float, default=0.0)
