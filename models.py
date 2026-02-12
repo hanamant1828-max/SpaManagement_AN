@@ -1181,8 +1181,9 @@ class EnhancedInvoice(db.Model):
     payment_methods = db.Column(db.Text)  # JSON for multiple payment methods
     amount_paid = db.Column(db.Float, default=0.0)
     balance_due = db.Column(db.Float, default=0.0)
-
+    
     notes = db.Column(db.Text)
+    tax_breakdown = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
