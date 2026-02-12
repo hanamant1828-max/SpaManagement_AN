@@ -910,12 +910,12 @@ textarea.form-control {
                                         <div class="invalid-feedback">Staff required</div>
                                     </div>
                                 </div>
-                                <div class="col-md-2">
-                                    <div class="form-group">
-                                        <label class="form-label">Qty</label>
-                                        <input type="number" class="form-control" name="service_quantities[]" value="1" min="0.5" step="0.5" oninput="updateCalculations()">
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label class="form-label">Qty</label>
+                                            <input type="number" class="form-control form-control-lg text-center" name="service_quantities[]" value="1" min="0.5" step="0.5" oninput="updateCalculations()" style="font-weight: bold; min-width: 80px;">
+                                        </div>
                                     </div>
-                                </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label class="form-label">Apt ID</label>
@@ -989,7 +989,7 @@ textarea.form-control {
                                     <div class="col-md-2">
                                         <div class="form-group">
                                             <label class="form-label required">Staff</label>
-                                            <select class="form-select form-select-lg" name="product_staff_ids[]" required>
+                                            <select class="form-select form-select-lg" name="product_staff_ids[]" required style="min-width: 120px;">
                                                 <option value="">-- Staff --</option>
                                                 {% for staff in staff_members %}
                                                 <option value="{{ staff.id }}" {% if staff.id == item.staff_id %}selected{% endif %}>
@@ -999,10 +999,10 @@ textarea.form-control {
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="col-md-1">
+                                    <div class="col-md-2">
                                         <div class="form-group">
                                             <label class="form-label">Qty</label>
-                                            <input type="number" class="form-control" name="product_quantities[]" value="{{ item.quantity }}" min="0.01" step="0.01" required oninput="updateCalculations()">
+                                            <input type="number" class="form-control form-control-lg text-center" name="product_quantities[]" value="{{ item.quantity }}" min="0.01" step="0.01" required oninput="updateCalculations()" style="font-weight: bold; min-width: 80px;">
                                         </div>
                                     </div>
                                     <div class="col-md-2">
@@ -1047,7 +1047,7 @@ textarea.form-control {
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label class="form-label required">Staff</label>
-                                        <select class="form-select form-select-lg" name="product_staff_ids[]">
+                                        <select class="form-select form-select-lg" name="product_staff_ids[]" style="min-width: 120px;">
                                             <option value="">Select Staff</option>
                                             {% for staff in staff_members %}
                                             <option value="{{ staff.id }}">{{ staff.full_name }}</option>
@@ -1056,12 +1056,12 @@ textarea.form-control {
                                         <div class="invalid-feedback">Staff required</div>
                                     </div>
                                 </div>
-                                <div class="col-md-1">
-                                    <div class="form-group">
-                                        <label class="form-label">Qty</label>
-                                        <input type="number" class="form-control" name="product_quantities[]" value="1" min="0.01" step="0.01" oninput="updateCalculations()">
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label class="form-label">Qty</label>
+                                            <input type="number" class="form-control form-control-lg text-center" name="product_quantities[]" value="1" min="0.01" step="0.01" oninput="updateCalculations()" style="font-weight: bold; min-width: 80px;">
+                                        </div>
                                     </div>
-                                </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label class="form-label">Price</label>
@@ -2686,7 +2686,7 @@ function resetCustomerPackages() {
                     <div class="col-md-2">
                         <div class="form-group">
                             <label class="form-label">Qty</label>
-                            <input type="number" class="form-control" name="service_quantities[]" value="1" min="0.5" step="0.5" oninput="updateCalculations()">
+                            <input type="number" class="form-control form-control-lg text-center" name="service_quantities[]" value="1" min="0.5" step="0.5" oninput="updateCalculations()" style="font-weight: bold; min-width: 80px;">
                         </div>
                     </div>
                     <div class="col-md-2">
@@ -2745,7 +2745,7 @@ function resetCustomerPackages() {
                     <div class="col-md-2">
                         <div class="form-group">
                             <label class="form-label required">Staff</label>
-                            <select class="form-select form-select-lg" name="product_staff_ids[]">
+                            <select class="form-select form-select-lg" name="product_staff_ids[]" style="min-width: 120px;">
                                 <option value="">Select Staff</option>
                                 {% for staff in staff_members %}
                                 <option value="{{ staff.id }}">{{ staff.full_name }}</option>
@@ -2754,10 +2754,10 @@ function resetCustomerPackages() {
                             <div class="invalid-feedback">Staff required</div>
                         </div>
                     </div>
-                    <div class="col-md-1">
+                    <div class="col-md-2">
                         <div class="form-group">
                             <label class="form-label">Qty</label>
-                            <input type="number" class="form-control" name="product_quantities[]" value="1" min="0.01" step="0.01" oninput="updateCalculations()">
+                            <input type="number" class="form-control form-control-lg text-center" name="product_quantities[]" value="1" min="0.01" step="0.01" oninput="updateCalculations()" style="font-weight: bold; min-width: 80px;">
                         </div>
                     </div>
                     <div class="col-md-2">
