@@ -2297,6 +2297,7 @@ def update_integrated_invoice(invoice_id):
         invoice = EnhancedInvoice.query.get_or_404(invoice_id)
 
         # Validate inventory stock and handle batch updates for EDIT
+        existing_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
         for item in inventory_data:
             batch = InventoryBatch.query.get(item['batch_id'])
             if not batch or (batch.is_expired and not any(ei.batch_id == batch.id for ei in existing_items)):
@@ -2315,6 +2316,7 @@ def update_integrated_invoice(invoice_id):
                     'message': f'Insufficient stock in batch {batch.batch_name}. Available: {batch.qty_available}, Additional Required: {diff}'
                 })
 
+        from modules.inventory.queries import create_audit_log
         # Process batch stock updates
         # 1. Restore old batch stock
         for old_item in existing_items:
@@ -2356,6 +2358,7 @@ def update_integrated_invoice(invoice_id):
                 batch.qty_available = batch.qty_available - qty_to_deduct
 
                 # Create audit log for deduction
+                from modules.inventory.queries import create_audit_log
                 create_audit_log(
                     batch_id=batch.id,
                     product_id=batch.product_id,
