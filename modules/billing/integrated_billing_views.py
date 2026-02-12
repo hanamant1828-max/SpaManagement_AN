@@ -2627,7 +2627,29 @@ def update_integrated_invoice(invoice_id):
                 final_amount = original_price - deduction_amount if is_package_deduction else original_price
                 
                 # Save the item to get an ID for package tracking
-                db.session.add(item)
+                new_item = InvoiceItem(
+                    invoice_id=invoice.id,
+                    item_type='service',
+                    item_id=service.id,
+                    item_name=service.name,
+                    description=service.description,
+                    quantity=service_data['quantity'],
+                    unit_price=service_data['unit_price'],
+                    original_amount=original_price,
+                    final_amount=final_amount,
+                    staff_revenue_price=original_price,
+                    staff_id=staff_id,
+                    staff_name=staff_name,
+                    is_package_deduction=is_package_deduction,
+                    package_name=service_data.get('package_name'),
+                    package_type=service_data.get('package_type'),
+                    benefit_type=service_data.get('benefit_type'),
+                    benefit_description=service_data.get('benefit_description'),
+                    deduction_amount=deduction_amount,
+                    package_assignment_id=service_data.get('package_assignment_id'),
+                    appointment_id=service_data.get('appointment_id')
+                )
+                db.session.add(new_item)
                 db.session.flush()
                 
                 # APPLY package benefit if requested
@@ -2645,7 +2667,7 @@ def update_integrated_invoice(invoice_id):
                                 service_id=service.id,
                                 service_price=original_price,
                                 invoice_id=invoice.id,
-                                invoice_item_id=item.id,
+                                invoice_item_id=new_item.id,
                                 manual_package_id=tracker.id,
                                 requested_quantity=int(service_data['quantity'])
                             )
