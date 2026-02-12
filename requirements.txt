@@ -34,9 +34,8 @@ psycopg2-binary
 pyjwt
 python-dotenv
 pytz
-replit
 requests
 sqlalchemy
 twilio
 werkzeug
-pytz
+wtforms
