@@ -1541,7 +1541,7 @@ class PackageUsageHistory(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
     package_benefit_id = db.Column(db.Integer, db.ForeignKey('package_benefit_tracker.id'), nullable=False)
     invoice_id = db.Column(db.Integer, db.ForeignKey('enhanced_invoice.id'), nullable=True)
-    invoice_item_id = db.Column(db.Integer, db.ForeignKey('invoice_item.id'), nullable=True)
+    invoice_item_id = db.Column(db.Integer, db.ForeignKey('invoice_item.id', ondelete='SET NULL'), nullable=True)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)
 
     # Idempotency and concurrency control
