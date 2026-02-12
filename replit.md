@@ -4,6 +4,7 @@
 A comprehensive Spa & Salon Management System built with Flask. Features include client management, appointment booking, staff management, billing, inventory, packages/memberships, expense tracking, reports, and more.
 
 ## Recent Changes
+- 2026-02-12: Completed import to Replit environment. Installed all Python dependencies, configured workflow, verified app runs successfully.
 - 2026-02-11: Migrated project to Replit environment. Cleaned up duplicate workflows and requirements.txt. Configured deployment settings.
 
 ## Project Architecture
