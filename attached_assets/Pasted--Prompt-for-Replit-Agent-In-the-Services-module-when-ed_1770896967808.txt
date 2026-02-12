@@ -1,0 +1,124 @@
+✅ Prompt for Replit Agent
+
+In the Services module, when editing a service linked to an Active Package, increasing or decreasing the quantity does NOT update the package balance correctly.
+
+Please fix the package balance recalculation logic during Edit Service.
+
+🔧 Required Fix
+1️⃣ Current Logic (Problem)
+
+Package balance updates correctly when adding a new service.
+
+But when editing the service (changing qty), the package balance does not adjust.
+
+✅ Correct Logic for Edit Service
+Step 1: Fetch Existing Service Record
+
+Before updating:
+
+Get:
+
+oldQty
+
+packageId
+
+servicePrice (or per-unit deduction value)
+
+Step 2: Compare Old vs New Quantity
+oldQty = existingService.qty
+newQty = updatedService.qty
+difference = newQty - oldQty
+
+Step 3: Adjust Package Balance Properly
+
+If package is amount-based (₹ based):
+
+If quantity increased:
+
+package.balance = package.balance - (difference * servicePrice)
+
+
+If quantity decreased:
+
+package.balance = package.balance + (abs(difference) * servicePrice)
+
+
+If package is service-count-based:
+
+If quantity increased:
+
+package.remainingServices = package.remainingServices - difference
+
+
+If quantity decreased:
+
+package.remainingServices = package.remainingServices + abs(difference)
+
+4️⃣ Prevent Negative Balance
+
+Before deduction:
+
+Check if package has enough balance/services
+
+If not:
+Show error:
+"Insufficient package balance"
+
+5️⃣ On Service Delete
+
+If service is deleted:
+
+package.balance += (oldQty * servicePrice)
+
+
+OR (count-based):
+
+package.remainingServices += oldQty
+
+6️⃣ If Package Is Changed During Edit
+
+If user changes the package:
+
+Restore old package:
+
+oldPackage.balance += (oldQty * servicePrice)
+
+
+Deduct from new package:
+
+newPackage.balance -= (newQty * servicePrice)
+
+✅ Expected Correct Behavior
+
+Example (Amount-based):
+
+Package Total	Used	Balance
+₹15000	₹500	₹14500
+
+If:
+
+Qty 1 = ₹500
+
+Edit to Qty 3
+
+Then:
+
+difference = 2
+Deduct ₹1000 more
+New balance = ₹13500
+
+
+If decreased:
+Balance should increase accordingly.
+
+7️⃣ Apply This Fix To:
+
+Edit Service
+
+Increase Qty
+
+Decrease Qty
+
+Change Package
+
+Delete Service

@@ -197,6 +197,23 @@ class PackageBillingService:
                         'applied': False,
                         'message': 'Manually selected package is not applicable to this service'
                     }
+                
+                # BALANCE CHECK: Ensure package has enough balance/sessions
+                if applicable_package.benefit_type == 'prepaid':
+                    if applicable_package.balance_remaining < service_price:
+                        return {
+                            'success': False,
+                            'applied': False,
+                            'message': f"Insufficient package balance. Available: ₹{applicable_package.balance_remaining:.2f}, Required: ₹{service_price:.2f}"
+                        }
+                elif applicable_package.benefit_type in ['free', 'discount']:
+                    if applicable_package.remaining_count < requested_quantity:
+                        return {
+                            'success': False,
+                            'applied': False,
+                            'message': f"Insufficient package sessions. Available: {applicable_package.remaining_count}, Required: {requested_quantity}"
+                        }
+                
                 applicable_packages = [applicable_package]
                 staff_override = True
             else:
@@ -691,8 +708,8 @@ class PackageBillingService:
                 return {'success': False, 'message': 'Usage record not found'}
 
             # Check if already reversed
-            if usage.transaction_type in ['refund', 'void']:
-                return {'success': False, 'message': 'Usage already reversed'}
+            if usage.transaction_type in ['refund', 'void', 'invoice_update']:
+                return {'success': False, 'message': f'Usage already reversed (type: {usage.transaction_type})'}
 
             # Get and lock the package
             package = db.session.query(PackageBenefitTracker).filter_by(
@@ -703,15 +720,22 @@ class PackageBillingService:
                 return {'success': False, 'message': 'Package not found'}
 
             # Restore benefits based on type
-            if usage.benefit_type in ['free', 'discount']:
-                package.used_count = max(0, package.used_count - usage.qty_deducted)
-                package.remaining_count += usage.qty_deducted
+            if usage.benefit_type in ['free', 'discount', 'unlimited']:
+                if usage.benefit_type != 'unlimited':
+                    package.used_count = max(0, package.used_count - usage.qty_deducted)
+                    package.remaining_count += usage.qty_deducted
                 package.is_active = True  # Reactivate if was exhausted
 
             elif usage.benefit_type == 'prepaid':
                 package.balance_used = max(0, package.balance_used - usage.amount_deducted)
                 package.balance_remaining += usage.amount_deducted
                 package.is_active = True  # Reactivate if was exhausted
+
+            # Update usage transaction type to mark it as reversed
+            usage.transaction_type = reason
+            
+            # CRITICAL: Sync with ServicePackageAssignment
+            cls._sync_assignment_with_tracker(package)
 
             # Create reversal record
             reversal = PackageUsageHistory(
@@ -725,8 +749,8 @@ class PackageBillingService:
                 qty_deducted=-usage.qty_deducted,  # Negative for reversal
                 amount_deducted=-usage.amount_deducted,  # Negative for reversal
                 discount_applied=-usage.discount_applied,
-                balance_after_qty=package.remaining_count,
-                balance_after_amount=package.balance_remaining,
+                balance_after_qty=package.remaining_count if usage.benefit_type != 'prepaid' else 0,
+                balance_after_amount=package.balance_remaining if usage.benefit_type == 'prepaid' else 0.0,
                 transaction_type=reason,
                 reversal_reference_id=usage.id,
                 applied_rule=f'reversal_{reason}',

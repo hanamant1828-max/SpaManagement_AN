@@ -2361,13 +2361,20 @@ def update_integrated_invoice(invoice_id):
             # REFUND package usage if it was applied
             if old_item.item_type == 'service' and old_item.is_package_deduction and old_item.package_assignment_id:
                 try:
-                    # Find the usage history record for this item
-                    idempotency_key = f"{invoice.id}_{old_item.id}"
-                    usage_record = PackageUsageHistory.query.filter_by(idempotency_key=idempotency_key).first()
-                    if usage_record:
+                    # Find ALL usage history records for this item (using a more robust approach)
+                    # The idempotency key format is {invoice_id}_{item_id}
+                    # But item_id changes on update because items are deleted/recreated
+                    # We should search by invoice_id and invoice_item_id
+                    usage_records = PackageUsageHistory.query.filter_by(
+                        invoice_id=invoice.id,
+                        invoice_item_id=old_item.id,
+                        transaction_type='use'
+                    ).all()
+                    
+                    for usage_record in usage_records:
                         # Call a method to reverse this usage
-                        PackageBillingService.reverse_package_usage(usage_record.id)
-                        app.logger.info(f"Reversed package usage for service {old_item.item_name} in invoice {invoice.id}")
+                        PackageBillingService.reverse_package_usage(usage_record.id, reason='invoice_update')
+                        app.logger.info(f"Reversed package usage {usage_record.id} for service {old_item.item_name} in invoice {invoice.id}")
                 except Exception as e:
                     app.logger.error(f"Error reversing package usage for item {old_item.id}: {e}")
 
