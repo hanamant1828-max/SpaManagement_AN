@@ -2412,6 +2412,8 @@ function resetCustomerPackages() {
     }
 
     function populateBatchSelect(batches, batchSelect, batchInfo, priceInput) {
+        const row = batchSelect.closest('.item-row');
+        const qtyInput = row.querySelector('input[name="product_quantities[]"]');
         // Filter available batches and sort by expiry (FIFO)
         const availableBatches = batches
             .filter(b => b.qty_available > 0)
@@ -2475,26 +2477,61 @@ function resetCustomerPackages() {
         if (!batchSelect.dataset.changeListenerAdded) {
             batchSelect.addEventListener('change', function() {
                 const selectedOption = this.options[this.selectedIndex];
+                if (!selectedOption) return;
+
                 const qty = selectedOption.dataset.qty;
                 const price = selectedOption.dataset.price;
-                const batch = availableBatches.find(b => b.id == this.value);
+                const batchId = this.value;
 
-                console.log('▶️ Batch selection changed:', { value: this.value, price, qty });
+                console.log('▶️ Batch selection changed:', { value: batchId, price, qty });
 
-                if (batch) {
-                    const exp = batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString() : 'No expiry';
-                    const expClass = batch.is_near_expiry ? 'text-warning' : '';
-                    batchInfo.innerHTML = `<small>Avail: ${qty} | <span class="${expClass}">Exp: ${exp}</span></small>`;
+                if (batchId) {
+                    const productSelect = row.querySelector('select[name="product_ids[]"]');
+                    const productId = productSelect ? parseInt(productSelect.value) : null;
+                    const batches = BillingState.batchCache[productId] || [];
+                    const batch = batches.find(b => b.id == batchId);
 
-                    if (priceInput && price) {
-                        priceInput.value = parseFloat(price).toFixed(2);
-                    } else if (priceInput) {
-                        priceInput.value = '0.00'; // Default if price is missing
+                    if (batch) {
+                        const exp = batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString() : 'No expiry';
+                        const expClass = batch.is_near_expiry ? 'text-warning' : '';
+                        batchInfo.innerHTML = `<small>Avail: ${qty} | <span class="${expClass}">Exp: ${exp}</span></small>`;
+
+                        if (priceInput && price) {
+                            priceInput.value = parseFloat(price).toFixed(2);
+                        } else if (priceInput) {
+                            priceInput.value = '0.00'; // Default if price is missing
+                        }
                     }
                 }
                 updateCalculations();
             });
             batchSelect.dataset.changeListenerAdded = 'true'; // Mark as added
+        }
+
+        // Add event listener for quantity change to update batch info
+        if (!qtyInput.dataset.changeListenerAdded) {
+            qtyInput.addEventListener('input', function() {
+                const selectedOption = batchSelect.options[batchSelect.selectedIndex];
+                if (selectedOption && selectedOption.value) {
+                    const batchId = batchSelect.value;
+                    const productSelect = row.querySelector('select[name="product_ids[]"]');
+                    const productId = productSelect ? parseInt(productSelect.value) : null;
+                    const batches = BillingState.batchCache[productId] || [];
+                    const batch = batches.find(b => b.id == batchId);
+
+                    if (batch) {
+                        const currentQty = parseFloat(this.value) || 0;
+                        const availQty = parseFloat(selectedOption.dataset.qty) || 0;
+                        const remaining = Math.max(0, availQty - currentQty);
+                        
+                        const exp = batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString() : 'No expiry';
+                        const expClass = batch.is_near_expiry ? 'text-warning' : '';
+                        batchInfo.innerHTML = `<small>Avail: ${availQty} (Rem: ${remaining}) | <span class="${expClass}">Exp: ${exp}</span></small>`;
+                    }
+                }
+                updateCalculations();
+            });
+            qtyInput.dataset.changeListenerAdded = 'true';
         }
 
         updateCalculations();
