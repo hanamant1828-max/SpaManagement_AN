@@ -2335,8 +2335,9 @@ def update_integrated_invoice(invoice_id):
                 })
 
         from modules.inventory.queries import create_audit_log
-        # Process batch stock updates
-        # 1. Restore old batch stock
+        from modules.packages.package_billing_service import PackageBillingService
+        from models import PackageBenefitTracker, PackageUsageHistory
+        # Restore old batch stock and REFUND package usage
         for old_item in existing_items:
             if old_item.item_type == 'inventory' and old_item.batch_id:
                 old_batch = InventoryBatch.query.get(old_item.batch_id)
@@ -2356,6 +2357,19 @@ def update_integrated_invoice(invoice_id):
                         reference_id=invoice.id,
                         notes=f"Restored stock from edited invoice {invoice.invoice_number}"
                     )
+            
+            # REFUND package usage if it was applied
+            if old_item.item_type == 'service' and old_item.is_package_deduction and old_item.package_assignment_id:
+                try:
+                    # Find the usage history record for this item
+                    idempotency_key = f"{invoice.id}_{old_item.id}"
+                    usage_record = PackageUsageHistory.query.filter_by(idempotency_key=idempotency_key).first()
+                    if usage_record:
+                        # Call a method to reverse this usage
+                        PackageBillingService.reverse_package_usage(usage_record.id)
+                        app.logger.info(f"Reversed package usage for service {old_item.item_name} in invoice {invoice.id}")
+                except Exception as e:
+                    app.logger.error(f"Error reversing package usage for item {old_item.id}: {e}")
 
         # Delete existing invoice items individually to avoid FK constraint issues
         for item in existing_items:
@@ -2612,39 +2626,35 @@ def update_integrated_invoice(invoice_id):
                 is_package_deduction = service_data.get('is_package_deduction', False)
                 final_amount = original_price - deduction_amount if is_package_deduction else original_price
                 
-                item = InvoiceItem(
-                    invoice_id=invoice.id,
-                    item_type='service',
-                    item_id=service.id,
-                    appointment_id=service_data.get('appointment_id'),
-                    item_name=service.name,
-                    description=service.description or '',
-                    quantity=service_data['quantity'],
-                    unit_price=service_data['unit_price'],
-                    original_amount=service_data.get('base_amount', service_data['unit_price'] * service_data['quantity']),
-                    final_amount=service_data.get('base_amount', service_data['unit_price'] * service_data['quantity']) + service_data.get('tax_amount', 0),
-                    deduction_amount=service_data.get('deduction_amount', 0.0),
-                    staff_revenue_price=service.price * service_data['quantity'],
-                    staff_id=staff_id,
-                    staff_name=staff_name,
-                    # GST fields
-                    gst_percentage=service_data.get('gst_percentage', service.gst_percentage or 18.0),
-                    cgst_rate=(service_data.get('gst_percentage', service.gst_percentage or 18.0) / 2) if not is_interstate else 0,
-                    sgst_rate=(service_data.get('gst_percentage', service.gst_percentage or 18.0) / 2) if not is_interstate else 0,
-                    igst_rate=service_data.get('gst_percentage', service.gst_percentage or 18.0) if is_interstate else 0,
-                    gst_amount=service_data.get('tax_amount', 0),
-                    cgst_amount=service_data.get('cgst_amount', 0),
-                    sgst_amount=service_data.get('sgst_amount', 0),
-                    igst_amount=service_data.get('igst_amount', 0),
-                    # Package benefit tracking
-                    is_package_deduction=is_package_deduction,
-                    package_assignment_id=service_data.get('package_assignment_id'),
-                    package_name=service_data.get('package_name'),
-                    package_type=service_data.get('package_type'),
-                    benefit_type=service_data.get('benefit_type'),
-                    benefit_description=service_data.get('benefit_description')
-                )
+                # Save the item to get an ID for package tracking
                 db.session.add(item)
+                db.session.flush()
+                
+                # APPLY package benefit if requested
+                if is_package_deduction and service_data.get('package_assignment_id'):
+                    try:
+                        # Use PackageBillingService to record the actual usage and update balances
+                        # We need to find the PackageBenefitTracker ID first
+                        tracker = PackageBenefitTracker.query.filter_by(
+                            package_assignment_id=service_data.get('package_assignment_id')
+                        ).first()
+                        
+                        if tracker:
+                            benefit_result = PackageBillingService.apply_package_benefit(
+                                customer_id=invoice.client_id,
+                                service_id=service.id,
+                                service_price=original_price,
+                                invoice_id=invoice.id,
+                                invoice_item_id=item.id,
+                                manual_package_id=tracker.id,
+                                requested_quantity=int(service_data['quantity'])
+                            )
+                            if benefit_result.get('success'):
+                                app.logger.info(f"✅ Package benefit RE-APPLIED for service '{service.name}': Deduction=₹{benefit_result.get('deduction_amount', 0):.2f}")
+                            else:
+                                app.logger.error(f"❌ Failed to re-apply package benefit: {benefit_result.get('message')}")
+                    except Exception as e:
+                        app.logger.error(f"Error applying package benefit during update: {e}")
                 
                 if is_package_deduction:
                     app.logger.info(f"📦 Package benefit saved for service '{service.name}': Deduction=₹{deduction_amount:.2f}, Package={service_data.get('package_name')}")
