@@ -2296,6 +2296,24 @@ def update_integrated_invoice(invoice_id):
         # Get the invoice
         invoice = EnhancedInvoice.query.get_or_404(invoice_id)
 
+        # Parse inventory data (same as create)
+        inventory_data = []
+        product_ids = request.form.getlist('product_ids[]')
+        product_staff_ids = request.form.getlist('product_staff_ids[]')
+        batch_ids = request.form.getlist('batch_ids[]')
+        product_quantities = request.form.getlist('product_quantities[]')
+        product_prices = request.form.getlist('product_prices[]')
+
+        for i, product_id in enumerate(product_ids):
+            if product_id and i < len(batch_ids) and batch_ids[i]:
+                inventory_data.append({
+                    'product_id': int(product_id),
+                    'batch_id': int(batch_ids[i]),
+                    'quantity': float(product_quantities[i]) if i < len(product_quantities) else 1,
+                    'unit_price': float(product_prices[i]) if i < len(product_prices) and product_prices[i] else 0,
+                    'staff_id': int(product_staff_ids[i]) if i < len(product_staff_ids) and product_staff_ids[i] else None
+                })
+
         # Validate inventory stock and handle batch updates for EDIT
         existing_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
         for item in inventory_data:
@@ -2344,11 +2362,8 @@ def update_integrated_invoice(invoice_id):
             db.session.delete(item)
         db.session.flush()
 
-        # Update inventory_data after flush if it was modified
-        # Note: inventory_data is used below to re-add items
-
         # ... (rest of the existing logic for processing services and products) ...
-
+        # Process new inventory items
         for item_data in inventory_data:
             batch = InventoryBatch.query.get(item_data['batch_id'])
             product = InventoryProduct.query.get(item_data['product_id'])
@@ -2361,7 +2376,7 @@ def update_integrated_invoice(invoice_id):
                 batch.qty_available = batch.qty_available - qty_to_deduct
 
                 # Create audit log for deduction
-                from modules.inventory.queries import create_audit_log
+                # Audit log import moved up
                 create_audit_log(
                     batch_id=batch.id,
                     product_id=batch.product_id,
