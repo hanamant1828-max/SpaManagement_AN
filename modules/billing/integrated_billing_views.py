@@ -2344,6 +2344,9 @@ def update_integrated_invoice(invoice_id):
             db.session.delete(item)
         db.session.flush()
 
+        # Update inventory_data after flush if it was modified
+        # Note: inventory_data is used below to re-add items
+
         # ... (rest of the existing logic for processing services and products) ...
 
         for item_data in inventory_data:
