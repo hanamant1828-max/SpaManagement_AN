@@ -1201,6 +1201,7 @@ def create_professional_invoice():
         service_quantities = request.form.getlist('service_quantities[]')
         appointment_ids = request.form.getlist('appointment_ids[]')
         staff_ids = request.form.getlist('staff_ids[]')
+        package_ids = request.form.getlist('package_ids[]') # Read package_ids from form
 
         for i, service_id in enumerate(service_ids):
             if service_id and str(service_id).strip():
@@ -1233,7 +1234,8 @@ def create_professional_invoice():
                     'service_id': int(service_id),
                     'quantity': float(service_quantities[i]) if i < len(service_quantities) else 1,
                     'appointment_id': int(appointment_ids[i]) if i < len(appointment_ids) and appointment_ids[i] else None,
-                    'staff_id': int(staff_id)
+                    'staff_id': int(staff_id),
+                    'package_id': package_ids[i] if i < len(package_ids) and package_ids[i] else None # Store package_id for each service
                 })
 
         # Parse inventory data
@@ -1708,6 +1710,9 @@ def create_professional_invoice():
 
                     # If no discount packages, try other package benefits (free sessions, prepaid, etc.)
                     if not package_discount_applied:
+                        # Use the package_id from services_data
+                        current_package_id = service_data.get('package_id')
+                        
                         package_result = PackageBillingService.apply_package_benefit(
                             customer_id=int(client_id),
                             service_id=service.id,
@@ -1716,7 +1721,7 @@ def create_professional_invoice():
                             invoice_item_id=item.id,
                             service_date=current_date,
                             requested_quantity=int(service_data['quantity']),
-                            manual_package_id=int(package_id) if package_id else None
+                            manual_package_id=int(current_package_id) if current_package_id else None
                         )
 
                         if package_result.get('success') and package_result.get('applied'):
