@@ -1062,7 +1062,7 @@ def check_package_benefits():
 
                     elif tracker.benefit_type == 'free':
                         sessions_available = tracker.remaining_count or 0
-                        sessions_to_use = min(quantity, sessions_available)
+                        sessions_to_use = min(int(quantity), sessions_available)
 
                         if sessions_to_use > 0:
                             price_per_session = service_item_price / quantity
@@ -1078,7 +1078,7 @@ def check_package_benefits():
                                 'applied': True,
                                 'message': benefit_info['message'],
                                 'package_type': assignment.package_type if assignment else 'unknown',
-                                'package_id': assignment.id if assignment else None,
+                                'package_id': tracker.id, # CRITICAL: Use tracker.id for exact mapping
                                 'deduction_amount': benefit_info['deduction']
                             }
                             package_deductions_applied += 1
@@ -1120,7 +1120,7 @@ def check_package_benefits():
                             'applied': True,
                             'message': benefit_info['message'],
                             'package_type': assignment.package_type if assignment else 'unknown',
-                            'package_id': assignment.id if assignment else None,
+                            'package_id': tracker.id, # CRITICAL: Use tracker.id
                             'deduction_amount': benefit_info['deduction']
                         }
                         package_deductions_applied += 1
@@ -1715,7 +1715,8 @@ def create_professional_invoice():
                             invoice_id=invoice.id,
                             invoice_item_id=item.id,
                             service_date=current_date,
-                            requested_quantity=int(service_data['quantity'])
+                            requested_quantity=int(service_data['quantity']),
+                            manual_package_id=int(package_id) if package_id else None
                         )
 
                         if package_result.get('success') and package_result.get('applied'):

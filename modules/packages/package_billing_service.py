@@ -200,18 +200,18 @@ class PackageBillingService:
                 
                 # BALANCE CHECK: Ensure package has enough balance/sessions
                 if applicable_package.benefit_type == 'prepaid':
-                    if applicable_package.balance_remaining < service_price:
+                    if applicable_package.balance_remaining < (service_price / requested_quantity):
                         return {
                             'success': False,
                             'applied': False,
-                            'message': f"Insufficient package balance. Available: ₹{applicable_package.balance_remaining:.2f}, Required: ₹{service_price:.2f}"
+                            'message': f"Insufficient package balance. Available: ₹{applicable_package.balance_remaining:.2f}, Required: ₹{service_price/requested_quantity:.2f}"
                         }
                 elif applicable_package.benefit_type in ['free', 'discount']:
-                    if applicable_package.remaining_count < requested_quantity:
+                    if applicable_package.remaining_count < 1: # We apply one by one
                         return {
                             'success': False,
                             'applied': False,
-                            'message': f"Insufficient package sessions. Available: {applicable_package.remaining_count}, Required: {requested_quantity}"
+                            'message': f"Insufficient package sessions. Available: {applicable_package.remaining_count}, Required: 1"
                         }
                 
                 applicable_packages = [applicable_package]
@@ -237,7 +237,7 @@ class PackageBillingService:
             # Apply benefit based on type
             result = cls._apply_benefit_by_type(
                 selected_package, service_price, customer_id, service_id,
-                invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+                invoice_id, invoice_item_id, idempotency_key, service_date, staff_override, requested_quantity
             )
 
             if result['success']:
@@ -267,7 +267,7 @@ class PackageBillingService:
     def _apply_benefit_by_type(cls, package: PackageBenefitTracker, service_price: float,
                               customer_id: int, service_id: int, invoice_id: int,
                               invoice_item_id: int, idempotency_key: str,
-                              service_date: datetime, staff_override: bool) -> Dict:
+                              service_date: datetime, staff_override: bool, requested_quantity: int = 1) -> Dict:
         """Apply benefit based on package type with concurrency control - SWITCH/CASE ROUTING"""
 
         # Lock the package record for update (concurrency control)
@@ -300,13 +300,13 @@ class PackageBillingService:
         if package_type == 'service_package':
             return cls._apply_service_package_benefit(
                 locked_package, service_price, customer_id, service_id,
-                invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+                invoice_id, invoice_item_id, idempotency_key, service_date, staff_override, requested_quantity
             )
         
         elif package_type == 'prepaid':
             return cls._apply_prepaid_package_benefit(
                 locked_package, service_price, customer_id, service_id,
-                invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+                invoice_id, invoice_item_id, idempotency_key, service_date, staff_override, requested_quantity
             )
         
         elif package_type == 'membership':
@@ -345,7 +345,7 @@ class PackageBillingService:
             elif benefit_type == 'free':
                 return cls._apply_free_benefit(
                     locked_package, service_price, customer_id, service_id,
-                    invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+                    invoice_id, invoice_item_id, idempotency_key, service_date, staff_override, requested_quantity
                 )
             elif benefit_type == 'discount':
                 return cls._apply_discount_benefit(
@@ -355,7 +355,7 @@ class PackageBillingService:
             elif benefit_type == 'prepaid':
                 return cls._apply_prepaid_benefit(
                     locked_package, service_price, customer_id, service_id,
-                    invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
+                    invoice_id, invoice_item_id, idempotency_key, service_date, staff_override, requested_quantity
                 )
             else:
                 return {

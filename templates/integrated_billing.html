@@ -790,13 +790,20 @@ textarea.form-control {
                                                 {% for package in customer_active_packages %}
                                                 <tr data-package-type="{{ package.package_type }}"
                                                     data-package-id="{{ package.assignment_id }}"
+                                                    data-tracker-id="{{ package.id if package.id else '' }}"
                                                     data-discount="{{ package.discount_percentage|default(0) }}"
                                                     data-applicable-services="{{ package.applicable_service_ids|tojson if package.applicable_service_ids else '[]' }}"
                                                     data-valid-from="{{ package.valid_from|default('') }}"
                                                     data-valid-to="{{ package.valid_to|default('') }}"
-                                                    data-valid-days="{{ package.valid_days|default('') }}">
+                                                    data-sessions-remaining="{{ package.remaining_count|default(0) }}"
+                                                    data-credit-remaining="{{ package.balance_remaining|default(0) }}">
                                                     <td>
-                                                        <strong>{{ package.name }}</strong>
+                                                        <div class="fw-bold">{{ package.name }}</div>
+                                                        {% if package.service_name %}
+                                                        <small class="text-primary"><i class="fas fa-spa me-1"></i>{{ package.service_name }}</small>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
                                                         {% if package.package_type == 'student_offer' %}
                                                             <br><small class="text-primary"><i class="fas fa-graduation-cap me-1"></i>{{ package.applicable_service_names|default('All Services') }}</small>
                                                             <br><small class="text-success"><i class="fas fa-tag me-1"></i>{{ package.discount_percentage }}% Discount</small>
