@@ -1,0 +1,120 @@
+I have an issue in my billing system related to Active Package balance/services not updating correctly when service quantity changes.
+
+🔴 Current Problem
+
+In the Active Packages section, it shows:
+
+Package: 3+1
+
+Total Sessions: 4
+
+Balance/Services: 4 / 4 sessions
+
+When I add a service and select Qty = 3:
+
+The package balance does NOT update correctly.
+
+It should show 1 / 4 sessions remaining.
+
+The progress bar should also update dynamically.
+
+But currently it still shows incorrect balance or does not refresh properly.
+
+✅ Expected Correct Behavior
+
+When service quantity changes (Add OR Edit invoice):
+
+1️⃣ Package Balance Logic
+remaining_sessions = total_package_sessions - used_sessions
+
+
+Example:
+
+Package total = 4 sessions
+
+User selects Qty = 3
+
+Remaining = 4 - 3 = 1
+
+UI should display:
+
+1 / 4 sessions
+
+2️⃣ When Editing Invoice
+
+If invoice already had:
+
+Qty = 2 (already deducted)
+
+And user changes it to:
+
+Qty = 3
+
+System must:
+
+Step 1: Restore old quantity back to package
+Step 2: Deduct new quantity
+Step 3: Recalculate remaining sessions
+Step 4: Update UI immediately
+
+3️⃣ Real-Time UI Update Required
+
+When Qty changes
+
+When invoice loads in edit mode
+
+When service is removed
+
+When invoice is saved
+
+The following must refresh:
+
+Active package balance
+
+Progress bar
+
+Billing summary
+
+🔧 What To Fix In Code
+
+Fix the quantity change handler (handleQtyChange or similar)
+
+Fix edit invoice logic so it:
+
+Restores old usage before applying new usage
+
+Recalculates package usage properly
+
+Ensure state is updated correctly (React state / Vue reactive / etc.)
+
+Ensure no double deduction happens
+
+Ensure package usage is tied to invoice ID
+
+🧠 Important Edge Cases
+
+If qty > remaining balance:
+
+Only deduct available sessions
+
+Extra sessions should be billed normally
+
+If service is removed:
+
+Restore package sessions immediately
+
+If invoice is cancelled:
+
+Restore all deducted sessions
+
+🎯 Final Goal
+
+Active Package section must always reflect:
+
+Correct remaining sessions
+
+Correct progress bar
+
+Correct deduction based on service qty
+
+Correct recalculation during invoice edit
