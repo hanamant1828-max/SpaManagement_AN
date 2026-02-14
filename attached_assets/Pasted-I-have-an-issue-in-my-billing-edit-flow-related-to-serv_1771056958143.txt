@@ -1,0 +1,103 @@
+I have an issue in my billing edit flow related to service quantity and package balance calculation.
+
+🔴 Current Problem
+
+When I edit an invoice and increase or decrease the service quantity:
+
+The package balance/services are not updating correctly.
+
+The billing total is recalculating incorrectly.
+
+Example:
+
+Package: 3+1 (Total 4 sessions)
+
+If customer selects 1 qty, billing works correctly.
+
+But when editing and increasing qty to 4, it is charging for the 4th service.
+
+Since 3+1 means 4 sessions included, the total amount should be ₹0 (covered under package).
+
+Currently, the system is charging for the 4th session.
+
+✅ Expected Correct Behavior
+
+Package Logic:
+
+If package is 3+1, total available sessions = 4.
+
+Billing should be:
+
+If used_sessions <= package_total_sessions:
+    service_amount = 0
+Else:
+    extra_sessions = used_sessions - package_total_sessions
+    service_amount = extra_sessions × service_price
+
+
+When editing invoice:
+
+First restore previous used quantity back to package balance.
+
+Then apply the updated quantity.
+
+Then recalculate:
+
+Package remaining balance
+
+Service amount
+
+Tax
+
+Total amount
+
+Package balance should update like:
+
+new_balance = package_total - total_used_sessions
+
+
+Billing summary must refresh after quantity change:
+
+Services subtotal
+
+Package benefits deduction
+
+Tax calculation
+
+Grand total
+
+🔧 What to Fix in Code
+
+Fix invoice edit logic so it:
+
+Reverts old quantity before applying new quantity.
+
+Recalculates package consumption correctly.
+
+Prevents charging when service is covered under package.
+
+Updates UI state immediately after qty change.
+
+Ensure:
+
+handleQtyChange() or similar function recalculates package coverage.
+
+editInvoice() properly updates package usage records.
+
+No duplicate deduction happens during edit.
+
+🧠 Important Edge Case
+
+If:
+
+Package balance = 3 sessions left
+
+User changes qty to 4
+
+Then:
+
+3 should be covered under package
+
+1 should be charged normally
+
+Please refactor the billing calculation logic to follow proper package consumption rules and ensure correct recalculation during invoice editing.

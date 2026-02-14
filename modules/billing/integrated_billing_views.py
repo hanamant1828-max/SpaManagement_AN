@@ -2514,13 +2514,37 @@ def update_integrated_invoice(invoice_id):
                 # But here we need to follow the logic of create/update
                 unit_price = service.price
                 quantity = s['quantity']
-                base_amount = unit_price * quantity
+                original_total = unit_price * quantity
                 
-                # Deductions
-                deduction = s.get('deduction_amount', 0.0)
-                is_pkg = s.get('is_package_deduction', False)
+                # RECALCULATE PACKAGE DEDUCTION BASED ON TOTAL QUANTITY
+                # This ensures that if 3+1 (4 sessions) are included, total is 0
+                deduction = 0.0
+                is_pkg = False
                 
-                final_amount = base_amount - (deduction if is_pkg else 0)
+                if s.get('package_assignment_id'):
+                    tracker = PackageBenefitTracker.query.filter_by(
+                        package_assignment_id=s.get('package_assignment_id')
+                    ).first()
+                    
+                    if tracker:
+                        if tracker.benefit_type == 'free':
+                            # How many sessions can be covered?
+                            # We must account for the fact that we reversed OLD usage already
+                            sessions_to_cover = min(quantity, tracker.remaining_count)
+                            deduction = sessions_to_cover * unit_price
+                            is_pkg = sessions_to_cover > 0
+                        elif tracker.benefit_type == 'discount':
+                            discount_pct = tracker.discount_percentage or 0
+                            deduction = (original_total * float(discount_pct)) / 100
+                            is_pkg = True
+                        elif tracker.benefit_type == 'prepaid':
+                            deduction = min(original_total, float(tracker.balance_remaining))
+                            is_pkg = True
+                
+                s['deduction_amount'] = deduction
+                s['is_package_deduction'] = is_pkg
+                
+                final_amount = original_total - deduction
                 
                 # Calculate tax component
                 tax_amt = final_amount - (final_amount / tax_divisor)

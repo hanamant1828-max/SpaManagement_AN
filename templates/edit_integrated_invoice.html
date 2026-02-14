@@ -49,8 +49,9 @@
                                     </select>
                                 </div>
                                 <div class="col-md-2">
-                                    <input type="number" name="service_quantities[]" class="form-control" 
-                                           value="{{ item.quantity }}" min="1" step="1" required>
+                                    <input type="number" name="service_quantities[]" class="form-control qty-input" 
+                                           value="{{ item.quantity }}" min="1" step="1" required
+                                           onchange="recalculateTotals()">
                                 </div>
                                 <div class="col-md-3">
                                     <select name="staff_ids[]" class="form-select" required>

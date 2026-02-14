@@ -691,6 +691,71 @@ class PackageBillingService:
             logger.error(f"Error syncing assignment with tracker: {str(e)}")
 
     @classmethod
+    def reverse_package_usage(cls, usage_id: int, reason: str = 'reversal') -> Dict:
+        """Reverse a package usage record and restore balance"""
+        try:
+            # Lock the usage record
+            usage = PackageUsageHistory.query.get(usage_id)
+            if not usage:
+                return {'success': False, 'message': 'Usage record not found'}
+
+            # Lock the package benefit tracker
+            package = PackageBenefitTracker.query.filter_by(id=usage.package_benefit_id).with_for_update().first()
+            if not package:
+                return {'success': False, 'message': 'Package record not found'}
+
+            # Restore balance based on benefit type
+            if usage.benefit_type == 'free':
+                package.used_count = max(0, package.used_count - usage.qty_deducted)
+                package.remaining_count += usage.qty_deducted
+                # Reactivate if it was exhausted
+                if package.remaining_count > 0:
+                    package.is_active = True
+            elif usage.benefit_type == 'discount':
+                package.used_count = max(0, package.used_count - usage.qty_deducted)
+                package.remaining_count += usage.qty_deducted
+                if package.remaining_count > 0:
+                    package.is_active = True
+            elif usage.benefit_type == 'prepaid':
+                package.balance_used = max(0, package.balance_used - usage.amount_deducted)
+                package.balance_remaining += usage.amount_deducted
+                if package.balance_remaining > 0:
+                    package.is_active = True
+
+            # Mark usage as reversed
+            usage.transaction_type = 'reversal'
+            usage.notes = f"Reversed: {reason} (Original: {usage.notes})"
+            
+            # Sync with assignment
+            cls._sync_assignment_with_tracker(package)
+            
+            db.session.commit()
+            return {'success': True, 'message': 'Usage reversed successfully'}
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error reversing package usage: {str(e)}")
+            return {'success': False, 'message': f'Error reversing usage: {str(e)}'}
+
+    @classmethod
+    def _sync_assignment_with_tracker(cls, tracker: PackageBenefitTracker):
+        """Sync balance fields back to ServicePackageAssignment if necessary"""
+        assignment = tracker.package_assignment
+        if not assignment:
+            return
+
+        if tracker.benefit_type == 'free':
+            if hasattr(assignment, 'sessions_used'):
+                assignment.sessions_used = tracker.used_count
+            if hasattr(assignment, 'sessions_remaining'):
+                assignment.sessions_remaining = tracker.remaining_count
+        elif tracker.benefit_type == 'prepaid':
+            if hasattr(assignment, 'balance_used'):
+                assignment.balance_used = tracker.balance_used
+            if hasattr(assignment, 'balance_remaining'):
+                assignment.balance_remaining = tracker.balance_remaining
+
+    @classmethod
     def _get_package_name(cls, package: PackageBenefitTracker) -> str:
         """Get package name from assignment"""
         try:
