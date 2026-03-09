@@ -1832,6 +1832,10 @@ def create_professional_invoice():
                     stock_reduced_count += 1
 
             db.session.commit()
+            
+            # Refresh invoice from database to ensure it's visible in queries
+            db.session.refresh(invoice)
+            app.logger.info(f"✅ Invoice {invoice.invoice_number} (ID: {invoice.id}) committed and refreshed. Payment status: {invoice.payment_status}")
 
             # Check if this is a preview request
             is_preview = request.form.get('preview') == 'true'
