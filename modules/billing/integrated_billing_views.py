@@ -2183,7 +2183,10 @@ def integrated_invoice_detail(invoice_id):
 
     try:
         # Get the invoice
-        invoice = EnhancedInvoice.query.get_or_404(invoice_id)
+        invoice = EnhancedInvoice.query.get(invoice_id)
+        if not invoice:
+            flash('Invoice not found', 'danger')
+            return redirect(url_for('list_integrated_invoices'))
 
         # Get invoice items
         invoice_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
@@ -2269,7 +2272,10 @@ def edit_integrated_invoice(invoice_id):
 
     try:
         # Get the invoice to verify it exists
-        invoice = EnhancedInvoice.query.get_or_404(invoice_id)
+        invoice = EnhancedInvoice.query.get(invoice_id)
+        if not invoice:
+            flash('Invoice not found', 'danger')
+            return redirect(url_for('list_integrated_invoices'))
 
         # Verify customer exists
         customer = Customer.query.get(invoice.client_id)
@@ -2300,7 +2306,9 @@ def update_integrated_invoice(invoice_id):
 
     try:
         # Get the invoice
-        invoice = EnhancedInvoice.query.get_or_404(invoice_id)
+        invoice = EnhancedInvoice.query.get(invoice_id)
+        if not invoice:
+            return jsonify({'success': False, 'message': 'Invoice not found'}), 404
 
         # Parse inventory data (same as create)
         inventory_data = []
@@ -2776,7 +2784,10 @@ def print_professional_invoice(invoice_id):
         return redirect(url_for('dashboard'))
 
     from models import EnhancedInvoice, InvoiceItem
-    invoice = EnhancedInvoice.query.get_or_404(invoice_id)
+    invoice = EnhancedInvoice.query.get(invoice_id)
+    if not invoice:
+        flash('Invoice not found', 'danger')
+        return redirect(url_for('list_integrated_invoices'))
     invoice_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
 
     # Parse tax details from notes
@@ -3069,7 +3080,10 @@ def view_professional_invoice(invoice_id):
     from models import EnhancedInvoice, InvoiceItem, SystemSetting
     from modules.settings.settings_queries import get_gst_settings
     
-    invoice = EnhancedInvoice.query.get_or_404(invoice_id)
+    invoice = EnhancedInvoice.query.get(invoice_id)
+    if not invoice:
+        flash('Invoice not found', 'danger')
+        return redirect(url_for('list_integrated_invoices'))
     invoice_items = InvoiceItem.query.filter_by(invoice_id=invoice_id).all()
     gst_config = get_gst_settings()
     
