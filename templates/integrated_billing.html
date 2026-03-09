@@ -1894,7 +1894,7 @@ function displayCustomerPackagesTable(packages) {
                     <th style="padding: 0.5rem;">Expiry</th>
                 </tr>
             </thead>
-            <tbody>`;
+            <tbody id="activePackagesTableBody">`;
 
     packages.forEach(pkg => {
         const packageName = pkg.name || 'Unknown Package';
@@ -2011,13 +2011,20 @@ function displayCustomerPackagesTable(packages) {
         }
 
         html += `
-            <tr style="border-bottom: 1px solid var(--spa-gray-200);">
+            <tr style="border-bottom: 1px solid var(--spa-gray-200);"
+                data-package-type="${packageType}"
+                data-package-id="${pkg.assignment_id || pkg.id || ''}"
+                data-tracker-id="${pkg.id || ''}"
+                data-credit-remaining="${(pkg.credit?.remaining || 0).toFixed(2)}"
+                data-credit-total="${(pkg.credit?.total || 0).toFixed(2)}"
+                data-sessions-remaining="${pkg.sessions?.remaining || 0}"
+                data-sessions-total="${pkg.sessions?.total || 0}">
                 <td style="padding: 0.5rem;">
                     <strong>${packageName}</strong>
                     ${serviceNameDisplay}
                 </td>
                 <td style="padding: 0.5rem;">${typeBadge}</td>
-                <td style="padding: 0.5rem;">
+                <td style="padding: 0.5rem;" class="balance-cell">
                     <strong style="font-size: 1.1em;">${balanceText}</strong>
                     ${balanceDetails}
                 </td>
@@ -3294,7 +3301,7 @@ function resetCustomerPackages() {
             
             // CRITICAL FIX: Always get the current balance, not just when usedAmount > 0
             // This ensures the display updates even if there's no current usage shown
-            const balanceCell = row.querySelector('td:nth-child(3)');
+            const balanceCell = row.querySelector('.balance-cell') || row.querySelector('td:nth-child(3)');
             if (!balanceCell) return;
             
             if (packageType === 'prepaid') {
