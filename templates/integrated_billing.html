@@ -796,7 +796,9 @@ textarea.form-control {
                                                     data-valid-from="{{ package.valid_from|default('') }}"
                                                     data-valid-to="{{ package.valid_to|default('') }}"
                                                     data-sessions-remaining="{{ package.remaining_count|default(0) }}"
-                                                    data-credit-remaining="{{ package.balance_remaining|default(0) }}">
+                                                    data-sessions-total="{{ package.total_allocated|default(package.remaining_count|default(0)) }}"
+                                                    data-credit-remaining="{{ package.balance_remaining|default(0) }}"
+                                                    data-credit-total="{{ package.balance_total|default(package.balance_remaining|default(0)) }}">
                                                     <td>
                                                         <div class="fw-bold">{{ package.name }}</div>
                                                         {% if package.service_name %}
@@ -3222,6 +3224,106 @@ function resetCustomerPackages() {
             grandTotal: grandTotal.toFixed(2)
         });
         console.log('✅ Calculations complete');
+        
+        // CRITICAL FIX: Update package balances in UI after calculations
+        updatePackageBalancesInUI();
+    }
+    
+    // NEW FUNCTION: Update package balance display to show simulated remaining after current invoice
+    function updatePackageBalancesInUI() {
+        console.log('🔄 Updating package balance display in UI');
+        
+        if (!BillingState.customerPackages || BillingState.customerPackages.length === 0) {
+            console.log('ℹ️ No packages to update');
+            return;
+        }
+        
+        // Create a map to track simulated usage for each package
+        const simulatedUsage = {};
+        
+        // Calculate cumulative package usage from all services in current invoice
+        const cumulativePackageUsage = {};
+        
+        document.querySelectorAll('.service-row').forEach((row) => {
+            const serviceSelect = row.querySelector('select[name="service_ids[]"]');
+            const qtyInput = row.querySelector('input[name="service_quantities[]"]');
+            
+            if (!serviceSelect || !serviceSelect.value) return;
+            
+            const serviceId = parseInt(serviceSelect.value);
+            const quantity = parseFloat(qtyInput?.value) || 0;
+            const basePrice = parseFloat(serviceSelect.selectedOptions[0]?.dataset.price) || 0;
+            
+            if (serviceId && quantity > 0) {
+                // Find applicable package and track usage
+                const benefit = checkPackageBenefit(serviceId, basePrice, quantity, cumulativePackageUsage);
+                
+                if (benefit && benefit.discount > 0 && benefit.packageId) {
+                    const pkgKey = benefit.packageId;
+                    simulatedUsage[pkgKey] = (simulatedUsage[pkgKey] || 0) + benefit.discount;
+                    console.log(`📦 Service ${serviceId} will use ₹${benefit.discount.toFixed(2)} from package ${pkgKey}`);
+                }
+            }
+        });
+        
+        // Update package rows in the Active Packages table
+        const packageRows = document.querySelectorAll('#activePackagesTableBody tr');
+        packageRows.forEach((row) => {
+            const packageType = row.dataset.packageType;
+            const packageId = row.dataset.packageId;
+            const trackerId = row.dataset.trackerId;
+            const pkgKey = packageId || trackerId;
+            
+            if (!pkgKey) return;
+            
+            const usedAmount = simulatedUsage[pkgKey] || 0;
+            
+            if (usedAmount > 0) {
+                // Update the balance display for this package
+                const balanceCell = row.querySelector('td:nth-child(3)');
+                if (!balanceCell) return;
+                
+                if (packageType === 'prepaid') {
+                    const originalCredit = parseFloat(row.dataset.creditRemaining) || 0;
+                    const originalTotal = parseFloat(row.dataset.creditTotal) || 0;
+                    
+                    if (originalTotal > 0) {
+                        const newRemaining = Math.max(0, originalCredit - usedAmount);
+                        const usedPct = ((originalTotal - newRemaining) / originalTotal * 100).toFixed(0);
+                        
+                        balanceCell.innerHTML = `
+                            <strong style="font-size: 1.1em; color: #f97316;">₹${newRemaining.toFixed(2)}</strong> / ₹${originalTotal.toFixed(2)}
+                            <div class="progress mt-1" style="height: 5px;">
+                                <div class="progress-bar bg-warning" style="width: ${usedPct}%"></div>
+                            </div>
+                            <small style="color: #f97316;"><i class="fas fa-arrow-down"></i> Will reduce by ₹${usedAmount.toFixed(2)}</small>
+                        `;
+                        
+                        console.log(`✏️ Updated prepaid package balance: ₹${newRemaining.toFixed(2)} (after -₹${usedAmount.toFixed(2)})`);
+                    }
+                } else if (packageType === 'service_package') {
+                    const originalSessions = parseFloat(row.dataset.sessionsRemaining) || 0;
+                    const originalTotal = parseFloat(row.dataset.sessionsTotal) || 0;
+                    
+                    if (originalTotal > 0) {
+                        // For service packages, the deduction is in number of sessions
+                        const sessionsUsed = Math.ceil(usedAmount);
+                        const newRemaining = Math.max(0, originalSessions - sessionsUsed);
+                        const usedPct = ((originalTotal - newRemaining) / originalTotal * 100).toFixed(0);
+                        
+                        balanceCell.innerHTML = `
+                            <strong style="font-size: 1.1em; color: #f97316;">${newRemaining} / ${originalTotal}</strong> sessions
+                            <div class="progress mt-1" style="height: 5px;">
+                                <div class="progress-bar bg-warning" style="width: ${usedPct}%"></div>
+                            </div>
+                            <small style="color: #f97316;"><i class="fas fa-arrow-down"></i> Will reduce by ${sessionsUsed}</small>
+                        `;
+                        
+                        console.log(`✏️ Updated service package balance: ${newRemaining} sessions (after -${sessionsUsed})`);
+                    }
+                }
+            }
+        });
     }
 
     // Function to check package benefits for a given service
