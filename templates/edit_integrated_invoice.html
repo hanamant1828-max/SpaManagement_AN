@@ -65,6 +65,13 @@
                                 </div>
                                 <div class="col-md-2">
                                     <input type="hidden" name="appointment_ids[]" value="{{ item.appointment_id or '' }}">
+                                    <input type="hidden" name="package_assignment_ids[]" value="{{ item.package_assignment_id or '' }}">
+                                    <input type="hidden" name="package_names[]" value="{{ item.package_name or '' }}">
+                                    <input type="hidden" name="package_types[]" value="{{ item.package_type or '' }}">
+                                    <input type="hidden" name="benefit_types[]" value="{{ item.benefit_type or '' }}">
+                                    <input type="hidden" name="benefit_descriptions[]" value="{{ item.benefit_description or '' }}">
+                                    <input type="hidden" name="deduction_amounts[]" value="{{ item.deduction_amount or '0' }}">
+                                    <input type="hidden" name="is_package_deductions[]" value="{{ 'true' if item.is_package_deduction else 'false' }}">
                                     <button type="button" class="btn btn-danger btn-sm" onclick="removeServiceRow(this)">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -275,6 +282,13 @@ function addServiceRow() {
         </div>
         <div class="col-md-2">
             <input type="hidden" name="appointment_ids[]" value="">
+            <input type="hidden" name="package_assignment_ids[]" value="">
+            <input type="hidden" name="package_names[]" value="">
+            <input type="hidden" name="package_types[]" value="">
+            <input type="hidden" name="benefit_types[]" value="">
+            <input type="hidden" name="benefit_descriptions[]" value="">
+            <input type="hidden" name="deduction_amounts[]" value="0">
+            <input type="hidden" name="is_package_deductions[]" value="false">
             <button type="button" class="btn btn-danger btn-sm" onclick="removeServiceRow(this)">
                 <i class="fas fa-trash"></i>
             </button>
