@@ -1740,6 +1740,9 @@ async function loadCustomerPackages(customerId) {
     BillingState.selectedCustomerId = parseInt(customerId);
     console.log('✅ Set BillingState.selectedCustomerId:', BillingState.selectedCustomerId);
 
+    // CRITICAL FIX: Reset simulated balances for new customer
+    resetSimulatedPackageBalances();
+
     try {
         const url = `/integrated-billing/customer-packages/${customerId}`;
         console.log('🌐 Fetching from URL:', url);
@@ -3229,6 +3232,17 @@ function resetCustomerPackages() {
         updatePackageBalancesInUI();
     }
     
+    // CRITICAL FIX: Reset all simulated package balances when customer changes
+    function resetSimulatedPackageBalances() {
+        const packageRows = document.querySelectorAll('#activePackagesTableBody tr');
+        packageRows.forEach((row) => {
+            // Remove simulated remaining data attributes to reset to original values
+            delete row.dataset.simulatedRemaining;
+            delete row.dataset.simulatedSessions;
+        });
+        console.log('🔄 Reset simulated package balances for new customer');
+    }
+    
     // NEW FUNCTION: Update package balance display to show simulated remaining after current invoice
     function updatePackageBalancesInUI() {
         console.log('🔄 Updating package balance display in UI');
@@ -3278,19 +3292,27 @@ function resetCustomerPackages() {
             
             const usedAmount = simulatedUsage[pkgKey] || 0;
             
-            if (usedAmount > 0) {
-                // Update the balance display for this package
-                const balanceCell = row.querySelector('td:nth-child(3)');
-                if (!balanceCell) return;
+            // CRITICAL FIX: Always get the current balance, not just when usedAmount > 0
+            // This ensures the display updates even if there's no current usage shown
+            const balanceCell = row.querySelector('td:nth-child(3)');
+            if (!balanceCell) return;
+            
+            if (packageType === 'prepaid') {
+                // Get the original total (this never changes)
+                const originalTotal = parseFloat(row.dataset.creditTotal) || 0;
+                // Get the current remaining balance or use the data attribute if not yet calculated
+                const currentRemaining = parseFloat(row.dataset.simulatedRemaining) || parseFloat(row.dataset.creditRemaining) || 0;
                 
-                if (packageType === 'prepaid') {
-                    const originalCredit = parseFloat(row.dataset.creditRemaining) || 0;
-                    const originalTotal = parseFloat(row.dataset.creditTotal) || 0;
+                if (originalTotal > 0) {
+                    // Calculate new remaining balance after current invoice services
+                    const newRemaining = Math.max(0, currentRemaining - usedAmount);
+                    // Store the simulated remaining for next calculation
+                    row.dataset.simulatedRemaining = newRemaining.toString();
                     
-                    if (originalTotal > 0) {
-                        const newRemaining = Math.max(0, originalCredit - usedAmount);
-                        const usedPct = ((originalTotal - newRemaining) / originalTotal * 100).toFixed(0);
-                        
+                    const usedPct = ((originalTotal - newRemaining) / originalTotal * 100).toFixed(0);
+                    
+                    if (usedAmount > 0) {
+                        // Show the updated balance with visual feedback
                         balanceCell.innerHTML = `
                             <strong style="font-size: 1.1em; color: #f97316;">₹${newRemaining.toFixed(2)}</strong> / ₹${originalTotal.toFixed(2)}
                             <div class="progress mt-1" style="height: 5px;">
@@ -3298,19 +3320,38 @@ function resetCustomerPackages() {
                             </div>
                             <small style="color: #f97316;"><i class="fas fa-arrow-down"></i> Will reduce by ₹${usedAmount.toFixed(2)}</small>
                         `;
-                        
                         console.log(`✏️ Updated prepaid package balance: ₹${newRemaining.toFixed(2)} (after -₹${usedAmount.toFixed(2)})`);
+                    } else {
+                        // No services selected yet, but ensure display is current
+                        const displayRemaining = parseFloat(row.dataset.simulatedRemaining) || currentRemaining;
+                        if (displayRemaining !== currentRemaining) {
+                            // Balance was previously reduced, update display to reflect current state
+                            balanceCell.innerHTML = `
+                                <strong>₹${displayRemaining.toFixed(2)}</strong> / ₹${originalTotal.toFixed(2)}
+                                <div class="progress mt-1" style="height: 5px;">
+                                    <div class="progress-bar bg-success" style="width: ${((originalTotal - displayRemaining) / originalTotal * 100).toFixed(0)}%"></div>
+                                </div>
+                            `;
+                        }
                     }
-                } else if (packageType === 'service_package') {
-                    const originalSessions = parseFloat(row.dataset.sessionsRemaining) || 0;
-                    const originalTotal = parseFloat(row.dataset.sessionsTotal) || 0;
+                }
+            } else if (packageType === 'service_package') {
+                // Get the original total (this never changes)
+                const originalTotal = parseFloat(row.dataset.sessionsTotal) || 0;
+                // Get the current remaining sessions
+                const currentRemaining = parseFloat(row.dataset.simulatedSessions) || parseFloat(row.dataset.sessionsRemaining) || 0;
+                
+                if (originalTotal > 0) {
+                    // For service packages, the deduction is in number of sessions
+                    const sessionsUsed = Math.ceil(usedAmount);
+                    const newRemaining = Math.max(0, currentRemaining - sessionsUsed);
+                    // Store the simulated remaining for next calculation
+                    row.dataset.simulatedSessions = newRemaining.toString();
                     
-                    if (originalTotal > 0) {
-                        // For service packages, the deduction is in number of sessions
-                        const sessionsUsed = Math.ceil(usedAmount);
-                        const newRemaining = Math.max(0, originalSessions - sessionsUsed);
-                        const usedPct = ((originalTotal - newRemaining) / originalTotal * 100).toFixed(0);
-                        
+                    const usedPct = ((originalTotal - newRemaining) / originalTotal * 100).toFixed(0);
+                    
+                    if (sessionsUsed > 0) {
+                        // Show the updated balance with visual feedback
                         balanceCell.innerHTML = `
                             <strong style="font-size: 1.1em; color: #f97316;">${newRemaining} / ${originalTotal}</strong> sessions
                             <div class="progress mt-1" style="height: 5px;">
@@ -3318,8 +3359,18 @@ function resetCustomerPackages() {
                             </div>
                             <small style="color: #f97316;"><i class="fas fa-arrow-down"></i> Will reduce by ${sessionsUsed}</small>
                         `;
-                        
                         console.log(`✏️ Updated service package balance: ${newRemaining} sessions (after -${sessionsUsed})`);
+                    } else {
+                        // No services selected yet, but ensure display is current
+                        const displaySessions = parseFloat(row.dataset.simulatedSessions) || currentRemaining;
+                        if (displaySessions !== currentRemaining) {
+                            balanceCell.innerHTML = `
+                                <strong>${displaySessions} / ${originalTotal}</strong> sessions
+                                <div class="progress mt-1" style="height: 5px;">
+                                    <div class="progress-bar bg-success" style="width: ${((originalTotal - displaySessions) / originalTotal * 100).toFixed(0)}%"></div>
+                                </div>
+                            `;
+                        }
                     }
                 }
             }
