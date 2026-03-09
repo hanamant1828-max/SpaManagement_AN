@@ -4096,7 +4096,7 @@ function resetCustomerPackages() {
         if (pkgNameInput) pkgNameInput.value = item.package_name || '';
         if (pkgTypeInput) pkgTypeInput.value = item.package_type || '';
         if (benefitTypeInput) benefitTypeInput.value = item.benefit_type || '';
-        if (benefitDescInput) benefitDescInput.value = item.benefit_description || '';
+        // DO NOT restore benefitDescInput - it contains stale balance info and will be recalculated
         if (deductionAmtInput) deductionAmtInput.value = item.deduction_amount || 0;
         if (isPkgDeductionInput) isPkgDeductionInput.value = item.is_package_deduction ? 'true' : 'false';
         
