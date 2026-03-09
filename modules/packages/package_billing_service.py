@@ -300,7 +300,7 @@ class PackageBillingService:
         if package_type == 'service_package':
             return cls._apply_service_package_benefit(
                 locked_package, service_price, customer_id, service_id,
-                invoice_id, invoice_item_id, idempotency_key, service_date, staff_override, requested_quantity
+                invoice_id, invoice_item_id, idempotency_key, service_date, staff_override
             )
         
         elif package_type == 'prepaid':
