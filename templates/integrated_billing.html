@@ -3307,13 +3307,13 @@ function resetCustomerPackages() {
             if (packageType === 'prepaid') {
                 // Get the original total (this never changes)
                 const originalTotal = parseFloat(row.dataset.creditTotal) || 0;
-                // Get the current remaining balance or use the data attribute if not yet calculated
-                const currentRemaining = parseFloat(row.dataset.simulatedRemaining) || parseFloat(row.dataset.creditRemaining) || 0;
+                // Get the current remaining balance from the server-provided attribute
+                const currentRemaining = parseFloat(row.dataset.creditRemaining) || 0;
                 
                 if (originalTotal > 0) {
                     // Calculate new remaining balance after current invoice services
                     const newRemaining = Math.max(0, currentRemaining - usedAmount);
-                    // Store the simulated remaining for next calculation
+                    // Store the simulated remaining for next calculation if needed
                     row.dataset.simulatedRemaining = newRemaining.toString();
                     
                     const usedPct = ((originalTotal - newRemaining) / originalTotal * 100).toFixed(0);
@@ -3329,30 +3329,45 @@ function resetCustomerPackages() {
                         `;
                         console.log(`✏️ Updated prepaid package balance: ₹${newRemaining.toFixed(2)} (after -₹${usedAmount.toFixed(2)})`);
                     } else {
-                        // No services selected yet, but ensure display is current
-                        const displayRemaining = parseFloat(row.dataset.simulatedRemaining) || currentRemaining;
-                        if (displayRemaining !== currentRemaining) {
-                            // Balance was previously reduced, update display to reflect current state
-                            balanceCell.innerHTML = `
-                                <strong>₹${displayRemaining.toFixed(2)}</strong> / ₹${originalTotal.toFixed(2)}
-                                <div class="progress mt-1" style="height: 5px;">
-                                    <div class="progress-bar bg-success" style="width: ${((originalTotal - displayRemaining) / originalTotal * 100).toFixed(0)}%"></div>
-                                </div>
-                            `;
-                        }
+                        // No services selected yet, show actual balance
+                        balanceCell.innerHTML = `
+                            <strong>₹${currentRemaining.toFixed(2)}</strong> / ₹${originalTotal.toFixed(2)}
+                            <div class="progress mt-1" style="height: 5px;">
+                                <div class="progress-bar bg-success" style="width: ${((originalTotal - currentRemaining) / originalTotal * 100).toFixed(0)}%"></div>
+                            </div>
+                        `;
                     }
                 }
             } else if (packageType === 'service_package') {
                 // Get the original total (this never changes)
                 const originalTotal = parseFloat(row.dataset.sessionsTotal) || 0;
-                // Get the current remaining sessions
-                const currentRemaining = parseFloat(row.dataset.simulatedSessions) || parseFloat(row.dataset.sessionsRemaining) || 0;
+                // Get the current remaining sessions from the server-provided attribute
+                const currentRemaining = parseFloat(row.dataset.sessionsRemaining) || 0;
                 
                 if (originalTotal > 0) {
-                    // For service packages, the deduction is in number of sessions
-                    const sessionsUsed = Math.ceil(usedAmount);
+                    // For service packages, the deduction is tracked by checkPackageBenefit and stored in simulatedUsage
+                    // However, checkPackageBenefit returns discount amount, so we need to map it back to sessions.
+                    // Actually, the most reliable way is to count how many sessions of this package are used.
+                    
+                    let sessionsUsed = 0;
+                    document.querySelectorAll('.service-row').forEach((sRow) => {
+                        const sSelect = sRow.querySelector('select[name="service_ids[]"]');
+                        const sQtyInput = sRow.querySelector('input[name="service_quantities[]"]');
+                        const sId = sSelect?.value;
+                        const sQty = parseFloat(sQtyInput?.value) || 0;
+                        
+                        if (sId && sQty > 0) {
+                             // We need to know which package this row is using. 
+                             // We can check the hidden input field that was updated by checkPackageBenefit in calculateTotals
+                             const appliedPkgId = sRow.querySelector('input[name="package_assignment_ids[]"]')?.value;
+                             if (appliedPkgId == packageId || appliedPkgId == trackerId) {
+                                 sessionsUsed += sQty;
+                             }
+                        }
+                    });
+
                     const newRemaining = Math.max(0, currentRemaining - sessionsUsed);
-                    // Store the simulated remaining for next calculation
+                    // Store the simulated remaining
                     row.dataset.simulatedSessions = newRemaining.toString();
                     
                     const usedPct = ((originalTotal - newRemaining) / originalTotal * 100).toFixed(0);
@@ -3368,16 +3383,13 @@ function resetCustomerPackages() {
                         `;
                         console.log(`✏️ Updated service package balance: ${newRemaining} sessions (after -${sessionsUsed})`);
                     } else {
-                        // No services selected yet, but ensure display is current
-                        const displaySessions = parseFloat(row.dataset.simulatedSessions) || currentRemaining;
-                        if (displaySessions !== currentRemaining) {
-                            balanceCell.innerHTML = `
-                                <strong>${displaySessions} / ${originalTotal}</strong> sessions
-                                <div class="progress mt-1" style="height: 5px;">
-                                    <div class="progress-bar bg-success" style="width: ${((originalTotal - displaySessions) / originalTotal * 100).toFixed(0)}%"></div>
-                                </div>
-                            `;
-                        }
+                        // No services selected yet, show actual balance
+                        balanceCell.innerHTML = `
+                            <strong>${currentRemaining} / ${originalTotal}</strong> sessions
+                            <div class="progress mt-1" style="height: 5px;">
+                                <div class="progress-bar bg-success" style="width: ${((originalTotal - currentRemaining) / originalTotal * 100).toFixed(0)}%"></div>
+                            </div>
+                        `;
                     }
                 }
             }
