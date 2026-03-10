@@ -488,8 +488,35 @@ function validateDateRange() {
 }
 
 function exportReport() {
-    // In a real implementation, this would generate and download a comprehensive report
-    alert('Report export functionality would be implemented here');
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+    
+    if (!startDate || !endDate) {
+        alert('Please select both start and end dates before exporting.');
+        return;
+    }
+    
+    // Show loading message
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generating...';
+    btn.disabled = true;
+    
+    try {
+        // Create download link
+        const url = `/api/export-report?start_date=${startDate}&end_date=${endDate}`;
+        window.location.href = url;
+        
+        // Reset button after 2 seconds
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }, 2000);
+    } catch (error) {
+        alert('Error exporting report: ' + error.message);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 }
 
 function generateReport(type) {

@@ -1,7 +1,7 @@
 """
 Reports views and routes
 """
-from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask import render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
 from sqlalchemy import func
@@ -11,6 +11,9 @@ from .reports_queries import (
     get_revenue_report, get_expense_report, get_staff_performance_report,
     get_client_report, get_inventory_report
 )
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 @app.route('/reports')
 @login_required
@@ -320,3 +323,180 @@ def inventory_report():
     
     return render_template('reports/inventory_report.html',
                          inventory_data=inventory_data)
+
+
+@app.route('/api/export-report')
+@login_required
+def export_report():
+    """Export reports as Excel file"""
+    if not current_user.can_access('reports'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        # Get date range from request
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+        
+        if start_date_str and end_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                end_date = date.today()
+                start_date = end_date - timedelta(days=30)
+        else:
+            end_date = date.today()
+            start_date = end_date - timedelta(days=30)
+        
+        # Create workbook
+        wb = Workbook()
+        wb.remove(wb.active)  # Remove default sheet
+        
+        # Define styles
+        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF")
+        border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # 1. Revenue Report Sheet
+        ws = wb.create_sheet("Revenue")
+        headers = ["Date", "Daily Revenue"]
+        ws.append(headers)
+        for cell in ws[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.border = border
+            cell.alignment = Alignment(horizontal='center')
+        
+        try:
+            revenue_data = get_revenue_report(start_date, end_date)
+            for item in revenue_data:
+                ws.append([
+                    item.date.strftime('%Y-%m-%d') if hasattr(item, 'date') else '',
+                    float(item.total or 0) if hasattr(item, 'total') else 0
+                ])
+        except Exception as e:
+            print(f"Error exporting revenue data: {e}")
+        
+        ws.column_dimensions['A'].width = 15
+        ws.column_dimensions['B'].width = 15
+        
+        # 2. Staff Performance Sheet
+        ws = wb.create_sheet("Staff Performance")
+        headers = ["Staff Name", "Appointments", "Revenue", "Avg. Service"]
+        ws.append(headers)
+        for cell in ws[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.border = border
+            cell.alignment = Alignment(horizontal='center')
+        
+        try:
+            staff_data = get_staff_performance_report(start_date, end_date)
+            for staff in staff_data:
+                avg_revenue = (staff.revenue / staff.appointments) if staff.appointments > 0 else 0
+                ws.append([
+                    f"{staff.first_name} {staff.last_name}",
+                    staff.appointments,
+                    float(staff.revenue or 0),
+                    float(avg_revenue)
+                ])
+        except Exception as e:
+            print(f"Error exporting staff data: {e}")
+        
+        ws.column_dimensions['A'].width = 20
+        ws.column_dimensions['B'].width = 15
+        ws.column_dimensions['C'].width = 15
+        ws.column_dimensions['D'].width = 15
+        
+        # 3. Service Statistics Sheet
+        ws = wb.create_sheet("Services")
+        headers = ["Service Name", "Bookings", "Revenue", "Avg. Price"]
+        ws.append(headers)
+        for cell in ws[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.border = border
+            cell.alignment = Alignment(horizontal='center')
+        
+        try:
+            service_stats = db.session.query(
+                Service.id,
+                Service.name,
+                func.count(InvoiceItem.id).label('bookings'),
+                func.sum(InvoiceItem.final_amount).label('revenue')
+            ).join(InvoiceItem, Service.id == InvoiceItem.item_id)\
+            .join(EnhancedInvoice, InvoiceItem.invoice_id == EnhancedInvoice.id)\
+            .filter(
+                EnhancedInvoice.invoice_date >= start_date,
+                EnhancedInvoice.invoice_date <= end_date,
+                EnhancedInvoice.payment_status == 'paid',
+                InvoiceItem.item_type == 'service'
+            ).group_by(Service.id, Service.name)\
+            .order_by(func.sum(InvoiceItem.final_amount).desc()).all()
+            
+            for service in service_stats:
+                avg_price = (service.revenue / service.bookings) if service.bookings > 0 else 0
+                ws.append([
+                    service.name,
+                    service.bookings,
+                    float(service.revenue or 0),
+                    float(avg_price)
+                ])
+        except Exception as e:
+            print(f"Error exporting service stats: {e}")
+        
+        ws.column_dimensions['A'].width = 20
+        ws.column_dimensions['B'].width = 15
+        ws.column_dimensions['C'].width = 15
+        ws.column_dimensions['D'].width = 15
+        
+        # 4. Summary Sheet
+        ws = wb.create_sheet("Summary", 0)
+        ws['A1'] = "Report Summary"
+        ws['A1'].font = Font(bold=True, size=14)
+        ws['A3'] = "Period"
+        ws['B3'] = f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
+        
+        try:
+            revenue_data = get_revenue_report(start_date, end_date)
+            total_revenue = sum(item.total or 0 for item in revenue_data) if revenue_data else 0
+            ws['A4'] = "Total Revenue"
+            ws['B4'] = float(total_revenue)
+        except:
+            pass
+        
+        try:
+            expense_data = get_expense_report(start_date, end_date)
+            total_expenses = sum(item.amount or 0 for item in expense_data) if expense_data else 0
+            ws['A5'] = "Total Expenses"
+            ws['B5'] = float(total_expenses)
+        except:
+            pass
+        
+        ws.column_dimensions['A'].width = 20
+        ws.column_dimensions['B'].width = 20
+        
+        # Save to bytes
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        # Send file
+        filename = f"report_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.xlsx"
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        print(f"Error exporting report: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
