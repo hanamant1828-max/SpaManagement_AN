@@ -67,6 +67,10 @@ class PackageBillingService:
     @classmethod
     def _package_covers_service(cls, package: PackageBenefitTracker, service_id: int) -> bool:
         """Check if a package covers a specific service"""
+        # Yearly memberships cover all services
+        if package.package_assignment and package.package_assignment.package_type in ['yearly', 'yearly_membership']:
+            return True
+
         # Prepaid packages (credit-based) cover all services
         if package.benefit_type == 'prepaid' and package.service_id is None:
             return True
