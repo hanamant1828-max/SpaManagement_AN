@@ -999,16 +999,15 @@ function editService(serviceId) {
         return;
     }
 
-    fetch(`/api/services/${serviceId}`)
-        .then(response => {
-            console.log('Response status:', response.status);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            return response.json();
-        })
-        .then(service => {
+    // Fetch both service data and categories in parallel
+    Promise.all([
+        fetch(`/api/services/${serviceId}`).then(r => r.json()),
+        fetch(`/api/service-categories`).then(r => r.json())
+    ])
+        .then(([service, categoryData]) => {
             console.log('Service data received:', service);
+            console.log('Categories received:', categoryData);
+            
             if (!service || service.error) {
                 throw new Error(service?.error || 'Service not found');
             }
@@ -1041,10 +1040,24 @@ function editService(serviceId) {
                 if (editServiceDuration) editServiceDuration.value = service.duration ?? 60;
                 if (editServicePrice) editServicePrice.value = service.price ?? 0;
                 
-                // Handle category select - check for Select2
-                if (editServiceCategory) {
+                // Populate category dropdown dynamically
+                if (editServiceCategory && categoryData.categories) {
+                    // Clear existing options except the first one
+                    editServiceCategory.innerHTML = '<option value="">Select Category</option>';
+                    
+                    // Add fetched categories
+                    categoryData.categories.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.id;
+                        option.textContent = cat.display_name;
+                        editServiceCategory.appendChild(option);
+                    });
+                    
+                    // Set the selected value
                     editServiceCategory.value = service.category_id || '';
-                    // If Select2 is initialized on this element, trigger change
+                    console.log('✅ Category dropdown populated with ' + categoryData.categories.length + ' options');
+                    
+                    // If Select2 is initialized, trigger change
                     if (typeof $ !== 'undefined' && $(editServiceCategory).hasClass('select2-hidden-accessible')) {
                         $(editServiceCategory).val(service.category_id || '').trigger('change');
                     }
@@ -1057,7 +1070,7 @@ function editService(serviceId) {
                     editForm.action = `/services/${service.id}/edit`;
                 }
                 
-                console.log('Edit form populated successfully');
+                console.log('✅ Edit form populated successfully');
             } catch (populateError) {
                 console.error('Error populating form:', populateError);
             }

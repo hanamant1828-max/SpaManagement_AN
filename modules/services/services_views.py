@@ -588,3 +588,27 @@ def get_service_api(service_id):
     except Exception as e:
         return jsonify({'error': str(e)})
 
+
+@app.route('/api/service-categories')
+@login_required
+def get_service_categories_api():
+    """Get all service categories for dropdown population"""
+    if not current_user.can_access('services'):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        from models import Category
+        categories = Category.query.filter_by(category_type='service', is_active=True).all()
+        return jsonify({
+            'categories': [
+                {
+                    'id': cat.id,
+                    'display_name': cat.display_name,
+                    'name': cat.name
+                } for cat in categories
+            ]
+        })
+    except Exception as e:
+        print(f"Error fetching categories: {e}")
+        return jsonify({'error': str(e)}), 500
+
