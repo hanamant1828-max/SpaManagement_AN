@@ -1559,6 +1559,7 @@ def create_professional_invoice():
             completed_appointments = 0
             package_deductions_applied = 0
             updated_packages = []  # Track updated package info for UI refresh
+            total_package_deductions = 0  # Track total package deductions to update invoice
 
             # Import package billing service
             from modules.packages.package_billing_service import PackageBillingService
@@ -1674,6 +1675,7 @@ def create_professional_invoice():
                                 item.is_package_deduction = True
                                 package_discount_applied = True
                                 package_deductions_applied += 1
+                                total_package_deductions += discount_amount  # Aggregate for invoice summary
 
                                 # CRITICAL: Save package benefit details for viewing/editing invoice later
                                 item.package_assignment_id = student_offer_assignment.id
@@ -1713,6 +1715,7 @@ def create_professional_invoice():
                                 item.is_package_deduction = True
                                 package_discount_applied = True
                                 package_deductions_applied += 1
+                                total_package_deductions += discount_amount  # Aggregate for invoice summary
 
                                 # CRITICAL: Save package benefit details for viewing/editing invoice later
                                 item.package_assignment_id = yearly_membership_assignment.id
@@ -1747,6 +1750,7 @@ def create_professional_invoice():
                             item.is_package_deduction = True
                             # staff_revenue_price remains unchanged - staff gets commission on original price
                             package_deductions_applied += 1
+                            total_package_deductions += item.deduction_amount  # Aggregate for invoice summary
 
                             # CRITICAL: Save package benefit details for viewing/editing invoice later
                             item.package_benefit_id = package_result.get('usage_id')
@@ -1846,6 +1850,36 @@ def create_professional_invoice():
                     # Reduce stock
                     batch.qty_available = float(batch.qty_available) - item_data['quantity']
                     stock_reduced_count += 1
+
+            # Update invoice with total package deductions BEFORE commit
+            if total_package_deductions > 0:
+                # Add package deductions to the discount field
+                invoice.discount_amount = discount_amount + total_package_deductions
+                
+                # Recalculate net subtotal after package deductions
+                net_subtotal_after_packages = max(0, gross_subtotal - invoice.discount_amount)
+                invoice.net_subtotal = net_subtotal_after_packages
+                
+                # Recalculate tax amount based on new net subtotal
+                if gross_subtotal > 0 and total_tax > 0:
+                    # Apply pro-rata tax adjustment
+                    tax_adjustment_factor = net_subtotal_after_packages / gross_subtotal if gross_subtotal > 0 else 1
+                    adjusted_tax = total_tax * tax_adjustment_factor
+                    adjusted_cgst = cgst_amount * tax_adjustment_factor
+                    adjusted_sgst = sgst_amount * tax_adjustment_factor
+                    adjusted_igst = igst_amount * tax_adjustment_factor
+                    
+                    invoice.tax_amount = adjusted_tax
+                    invoice.cgst_amount = adjusted_cgst
+                    invoice.sgst_amount = adjusted_sgst
+                    invoice.igst_amount = adjusted_igst
+                    
+                    # Recalculate final total amount
+                    invoice.total_amount = net_subtotal_after_packages + adjusted_tax + additional_charges + tips_amount
+                    app.logger.info(f"📊 Package deductions applied: ₹{total_package_deductions:.2f}. Invoice discount updated to ₹{invoice.discount_amount:.2f}. New total: ₹{invoice.total_amount:.2f}")
+                else:
+                    # Simple case: no existing tax
+                    invoice.total_amount = net_subtotal_after_packages + additional_charges + tips_amount
 
             db.session.commit()
 
@@ -2017,6 +2051,18 @@ def get_customer_packages(customer_id):
                         app.logger.info(f"✅ API Student offer {package_data['name']}: {package_data.get('discount_percentage', 0)}% off, valid {package_data['valid_days']}, applies to: {package_data.get('applicable_service_names', 'N/A')}")
                 except Exception as e:
                     app.logger.error(f"Error getting student offer details in API: {e}")
+
+            # CRITICAL: Handle yearly membership discount display
+            if actual_package_type in ['yearly', 'yearly_membership']:
+                try:
+                    from models import YearlyMembership
+                    yearly_membership = YearlyMembership.query.get(r.package_reference_id)
+                    if yearly_membership and yearly_membership.discount_percent:
+                        package_data['discount'] = float(yearly_membership.discount_percent)
+                        package_data['discount_percentage'] = float(yearly_membership.discount_percent)
+                        app.logger.info(f"✅ API Yearly membership {package_data['name']}: {yearly_membership.discount_percent}% discount applied to all services")
+                except Exception as e:
+                    app.logger.error(f"Error getting yearly membership details in API: {e}")
 
             # CRITICAL FIX: Check PackageBenefitTracker first for accurate session data
             benefit_tracker = None
