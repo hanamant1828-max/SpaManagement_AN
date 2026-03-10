@@ -428,6 +428,10 @@ def integrated_billing(customer_id=None):
                                 # Try both discount_percent and discount_percentage
                                 val = getattr(yearly_tmpl, 'discount_percent', 0) or getattr(yearly_tmpl, 'discount_percentage', 0) or 0
                                 package_info['discount_percentage'] = float(val)
+                                # CRITICAL: Update the tracker too so it's cached
+                                tracker.discount_percentage = package_info['discount_percentage']
+                                db.session.add(tracker)
+                                db.session.commit()
                         except:
                             pass
 

@@ -3473,13 +3473,13 @@ function resetCustomerPackages() {
             if (pkg.package_type === 'yearly' || pkg.package_type === 'yearly_membership') {
                 console.log('🧐 Checking yearly package:', pkg.name, 'discount:', pkg.discount_percentage);
                 // Extract discount percentage from package name (e.g., "Gold Membership - 20% Discount")
-                const discountMatch = pkg.name.match(/(\d+)%/);
+                const nameMatch = pkg.name.match(/(\d+)%/);
                 let discountPercent = 0;
                 
-                if (discountMatch) {
-                    discountPercent = parseInt(discountMatch[1]);
-                } else if (pkg.discount_percentage && pkg.discount_percentage > 0) {
+                if (pkg.discount_percentage && pkg.discount_percentage > 0) {
                     discountPercent = pkg.discount_percentage;
+                } else if (nameMatch) {
+                    discountPercent = parseInt(nameMatch[1]);
                 }
                 
                 if (discountPercent > 0) {

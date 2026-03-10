@@ -71,38 +71,6 @@ class PackageBillingService:
         if package.package_assignment and package.package_assignment.package_type in ['yearly', 'yearly_membership']:
             return True
 
-        # Prepaid packages (credit-based) cover all services
-        if package.benefit_type == 'prepaid' and package.service_id is None:
-            return True
-
-        # Direct service match for service packages
-        if package.service_id == service_id:
-            return True
-
-        # For memberships - check if membership covers this service
-        if package.benefit_type == 'unlimited':
-            # If service_id is specified, it's only for that specific service
-            if package.service_id is not None:
-                return package.service_id == service_id
-            
-            # For memberships, ALWAYS check membership services (no unlimited access to all services)
-            if package.package_assignment and package.package_assignment.package_type == 'membership':
-                try:
-                    from models import Membership, MembershipService
-                    membership = Membership.query.get(package.package_assignment.package_reference_id)
-                    if membership and hasattr(membership, 'membership_services'):
-                        # Only return True if the service is specifically included in the membership
-                        included_service_ids = [ms.service_id for ms in membership.membership_services]
-                        print(f"DEBUG: Membership {membership.name} includes services: {included_service_ids}, checking service: {service_id}")
-                        return service_id in included_service_ids
-                    else:
-                        print(f"DEBUG: Membership {membership.name if membership else 'None'} has no services configured")
-                        return False
-                except Exception as e:
-                    print(f"Error checking membership services: {e}")
-                    return False
-            return False
-
         # Student offers and other discount types - check service assignments
         if package.benefit_type == 'discount':
             if package.service_id == service_id:
@@ -110,12 +78,17 @@ class PackageBillingService:
             # Check student offer services
             if package.package_assignment and package.package_assignment.package_type == 'student_offer':
                 try:
-                    from models import StudentOffer, StudentOfferService
+                    from models import StudentOffer
                     offer = StudentOffer.query.get(package.package_assignment.package_reference_id)
                     if offer and hasattr(offer, 'student_offer_services'):
+                        # If no specific services are listed, it covers all services
+                        if not offer.student_offer_services:
+                            return True
                         return any(sos.service_id == service_id for sos in offer.student_offer_services)
+                    # If it's a student offer but template not found, or no services, default to True for yearly-like behavior
+                    return True
                 except:
-                    pass
+                    return True
             return False
 
         return False
