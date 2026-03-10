@@ -1696,9 +1696,9 @@ def create_professional_invoice():
                     if not package_discount_applied:
                         yearly_membership_assignment = ServicePackageAssignment.query.filter(
                             ServicePackageAssignment.customer_id == int(client_id),
-                            ServicePackageAssignment.package_type == 'yearly_membership',
+                            ServicePackageAssignment.package_type.in_(['yearly', 'yearly_membership']),
                             ServicePackageAssignment.status == 'active',
-                            ServicePackageAssignment.expires_on >= dt.now() # Use dt.now()
+                            (ServicePackageAssignment.expires_on >= dt.now()) | (ServicePackageAssignment.expires_on == None) # Use dt.now() or no expiry
                         ).first()
 
                         if yearly_membership_assignment:
@@ -2213,6 +2213,18 @@ def get_customer_packages(customer_id):
                         "total": float(r.credit_amount or 0.0),
                         "remaining": float(r.remaining_credit or 0.0),
                     }
+
+                # CRITICAL: Add yearly membership discount to fallback packages
+                if actual_package_type in ['yearly', 'yearly_membership']:
+                    try:
+                        from models import YearlyMembership
+                        yearly_membership = YearlyMembership.query.get(r.package_reference_id)
+                        if yearly_membership and yearly_membership.discount_percent:
+                            package_data['discount'] = float(yearly_membership.discount_percent)
+                            package_data['discount_percentage'] = float(yearly_membership.discount_percent)
+                            app.logger.info(f"✅ Fallback API: Yearly membership {package_data['name']}: {yearly_membership.discount_percent}% discount")
+                    except Exception as e:
+                        app.logger.error(f"Error getting yearly membership discount in fallback: {e}")
 
                 packages_list.append(package_data)
 
