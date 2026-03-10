@@ -140,7 +140,6 @@ def save_face():
             
             # Save to customer
             customer.face_encoding = embedding_json
-            customer.face_updated_at = datetime.now()
             
             db.session.commit()
             print(f"✅ Face saved successfully for {customer.full_name}")

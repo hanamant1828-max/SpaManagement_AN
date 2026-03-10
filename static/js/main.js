@@ -517,19 +517,26 @@ function saveFaceDataForTab() {
             face_image: imageData
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
-            alert('Face data saved successfully for ' + data.client_name);
+            alert('Face data saved successfully!');
             // Reset the interface
             resetFaceInterface();
         } else {
-            alert('Error saving face data: ' + data.error);
+            const errorMsg = data.error || data.message || 'Unknown error';
+            alert('Error saving face data: ' + errorMsg);
+            console.error('Save error:', data);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error saving face data. Please try again.');
+        alert('Error saving face data: ' + error.message);
     });
 }
 

@@ -41,3 +41,5 @@ werkzeug
 wtforms
 pytz
 insightface
+onnx
+onnxruntime
