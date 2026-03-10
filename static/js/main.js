@@ -507,13 +507,13 @@ function saveFaceDataForTab() {
     const imageData = canvas.toDataURL('image/jpeg', 0.8);
 
     // Send to server
-    fetch('/api/save_face', {
+    fetch('/api/face-recognition/save', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            client_id: clientSelect.value,
+            customer_id: clientSelect.value,
             face_image: imageData
         })
     })

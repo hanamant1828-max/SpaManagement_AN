@@ -47,6 +47,139 @@ def get_face_app():
 
     return _face_app
 
+@face_recognition_bp.route('/save', methods=['POST'])
+def save_face():
+    """
+    Save face embedding for a customer
+    """
+    try:
+        # Check authentication
+        if not current_user.is_authenticated:
+            print("❌ Access denied: User not authenticated.")
+            return jsonify({
+                'success': False,
+                'error': 'Access denied',
+                'message': 'Please log in to access this feature'
+            }), 401
+        
+        print(f"🔐 Face save request from user: {current_user.username}")
+        
+        # Get JSON data
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided',
+                'message': 'Invalid request format'
+            }), 400
+        
+        # Get customer ID and face image
+        customer_id = data.get('customer_id')
+        face_image = data.get('image') or data.get('face_image')
+        
+        if not customer_id or not face_image:
+            return jsonify({
+                'success': False,
+                'error': 'Missing required fields',
+                'message': 'Customer ID and face image are required'
+            }), 400
+        
+        # Get customer
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return jsonify({
+                'success': False,
+                'error': 'Customer not found',
+                'message': f'Customer with ID {customer_id} not found'
+            }), 404
+        
+        print(f"📷 Saving face for customer: {customer.full_name} (ID: {customer.id})")
+        
+        # Decode face image
+        if ',' in face_image:
+            face_image = face_image.split(',')[1]
+        
+        image_data = base64.b64decode(face_image)
+        image = Image.open(io.BytesIO(image_data))
+        
+        # Convert to RGB if needed
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        
+        # Resize if too small
+        min_size = 160
+        if image.size[0] < min_size or image.size[1] < min_size:
+            ratio = max(min_size / image.size[0], min_size / image.size[1])
+            new_size = (int(image.size[0] * ratio), int(image.size[1] * ratio))
+            image = image.resize(new_size, Image.Resampling.LANCZOS)
+            print(f"📏 Resized image to {new_size}")
+        
+        image_array = np.array(image)
+        
+        # Get face app and extract embedding
+        try:
+            face_app = get_face_app()
+            
+            # Detect face
+            faces = face_app.get(image_array)
+            
+            if len(faces) == 0:
+                print("❌ No face detected in image")
+                return jsonify({
+                    'success': False,
+                    'error': 'No face detected',
+                    'message': 'No face was detected in the provided image. Please try again with a clearer photo.'
+                }), 400
+            
+            # Get embedding from first face
+            embedding = faces[0].embedding
+            print(f"✅ Face detected and embedding extracted")
+            
+            # Store as JSON (more portable than binary)
+            embedding_json = json.dumps(embedding.tolist())
+            
+            # Save to customer
+            customer.face_encoding = embedding_json
+            customer.face_updated_at = datetime.now()
+            
+            db.session.commit()
+            print(f"✅ Face saved successfully for {customer.full_name}")
+            
+            return jsonify({
+                'success': True,
+                'message': f'Face saved successfully for {customer.full_name}'
+            }), 200
+        
+        except ImportError as import_err:
+            print(f"❌ Face recognition library error: {import_err}")
+            return jsonify({
+                'success': False,
+                'error': 'Face recognition library not available',
+                'message': 'The face recognition service is not properly installed. Please contact administrator.'
+            }), 500
+        except Exception as e:
+            print(f"❌ Error extracting face embedding: {e}")
+            import traceback
+            traceback.print_exc()
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'error': 'Face processing error',
+                'message': f'Failed to process face: {str(e)}'
+            }), 500
+    
+    except Exception as e:
+        print(f"❌ Face save error: {e}")
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Server error',
+            'message': 'An unexpected error occurred. Please try again or contact support.'
+        }), 500
+
+
 @face_recognition_bp.route('/recognize', methods=['POST'])
 def recognize_face():
     """
