@@ -1306,3 +1306,55 @@ def api_unaki_undo_checkin(booking_id):
         traceback.print_exc()
         db.session.rollback()
         return jsonify({'error': str(e), 'success': False}), 500
+
+
+@app.route('/api/unaki/bookings/<int:booking_id>', methods=['PATCH', 'PUT'])
+@login_required
+def api_update_unaki_booking(booking_id):
+    """API endpoint to update Unaki booking (including cancellation)"""
+    if not current_user.can_access('bookings'):
+        return jsonify({'error': 'Access denied', 'success': False}), 403
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+            
+        booking = UnakiBooking.query.get(booking_id)
+        
+        if not booking:
+            return jsonify({
+                'success': False,
+                'error': 'Booking not found'
+            }), 404
+
+        # Update status if provided
+        if 'status' in data:
+            booking.status = data['status']
+            print(f"✅ Updated booking {booking_id} status to: {data['status']}")
+        
+        # Update other fields as needed
+        if 'notes' in data:
+            booking.notes = data['notes']
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Booking {booking_id} updated successfully',
+            'booking_id': booking_id,
+            'status': booking.status
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error updating booking {booking_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
