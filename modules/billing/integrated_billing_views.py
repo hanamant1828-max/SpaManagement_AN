@@ -415,12 +415,24 @@ def integrated_billing(customer_id=None):
                     'expires_on': tracker.valid_to.strftime('%b %d, %Y') if tracker.valid_to else None
                 }
 
-                # Add discount_percentage for student offers and discount packages
-                if tracker.benefit_type == 'discount' or assignment.package_type == 'student_offer':
+                # Add discount_percentage for yearly memberships, student offers and discount packages
+                if tracker.benefit_type == 'discount' or assignment.package_type in ['student_offer', 'yearly', 'yearly_membership']:
                     package_info['discount_percentage'] = float(tracker.discount_percentage or 0)
+                    
+                    # For yearly memberships, if tracker doesn't have it, try to get from template
+                    if not package_info['discount_percentage'] and assignment.package_type in ['yearly', 'yearly_membership']:
+                        try:
+                            from models import YearlyMembership
+                            yearly_tmpl = YearlyMembership.query.get(assignment.package_reference_id)
+                            if yearly_tmpl:
+                                # Try both discount_percent and discount_percentage
+                                val = getattr(yearly_tmpl, 'discount_percent', 0) or getattr(yearly_tmpl, 'discount_percentage', 0) or 0
+                                package_info['discount_percentage'] = float(val)
+                        except:
+                            pass
 
-                    # For student offers, get discount and applicable services from template
-                    if assignment.package_type == 'student_offer':
+                # Add type-specific fields matching template expectations
+                if assignment.package_type == 'student_offer':
                         try:
                             from models import StudentOffer
                             student_offer = StudentOffer.query.get(assignment.package_reference_id)
@@ -990,7 +1002,7 @@ def check_package_benefits():
             # --- Check for Yearly Membership Discount FIRST ---
             yearly_membership_assignment = ServicePackageAssignment.query.filter(
                 ServicePackageAssignment.customer_id == int(customer_id),
-                ServicePackageAssignment.package_type == 'yearly_membership',
+                ServicePackageAssignment.package_type.in_(['yearly', 'yearly_membership']),
                 ServicePackageAssignment.status == 'active',
                 ServicePackageAssignment.expires_on >= dt.now()
             ).first()
