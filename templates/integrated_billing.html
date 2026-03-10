@@ -3462,11 +3462,18 @@ function resetCustomerPackages() {
             }
 
             // --- PRIORITY 1: Yearly membership - applies percentage discount to ALL services ---
-            if (pkg.package_type === 'yearly') {
+            if (pkg.package_type === 'yearly' || pkg.package_type === 'yearly_membership') {
                 // Extract discount percentage from package name (e.g., "Gold Membership - 20% Discount")
                 const discountMatch = pkg.name.match(/(\d+)%/);
+                let discountPercent = 0;
+                
                 if (discountMatch) {
-                    const discountPercent = parseInt(discountMatch[1]);
+                    discountPercent = parseInt(discountMatch[1]);
+                } else if (pkg.discount_percentage && pkg.discount_percentage > 0) {
+                    discountPercent = pkg.discount_percentage;
+                }
+                
+                if (discountPercent > 0) {
                     const totalServiceCost = servicePrice * quantity;
                     totalBenefit = (totalServiceCost * discountPercent) / 100;
                     appliedPackage = pkg.name;
@@ -3477,21 +3484,7 @@ function resetCustomerPackages() {
                     console.log(`✅ Yearly membership discount applied: ${pkg.name}, ${discountPercent}% off = ₹${totalBenefit.toFixed(2)}`);
                     break; // Use first matching yearly package
                 } else {
-                    // If no percentage in name, check for discount_percentage field
-                    if (pkg.discount_percentage && pkg.discount_percentage > 0) {
-                        const discountPercent = pkg.discount_percentage;
-                        const totalServiceCost = servicePrice * quantity;
-                        totalBenefit = (totalServiceCost * discountPercent) / 100;
-                        appliedPackage = pkg.name || 'Yearly Membership';
-                        appliedPackageId = pkg.assignment_id || pkg.id;
-                        appliedPackageType = 'yearly_membership';
-                        benefitType = 'yearly_discount';
-                        benefitMessage = `${discountPercent}% yearly membership discount applied from ${appliedPackage}`;
-                        console.log(`✅ Yearly membership discount applied: ${appliedPackage}, ${discountPercent}% off = ₹${totalBenefit.toFixed(2)}`);
-                        break;
-                    } else {
-                        console.log('⏭️ Yearly package found but no percentage available:', pkg.name);
-                    }
+                    console.log('⏭️ Yearly package found but no percentage available:', pkg.name);
                 }
             }
 
