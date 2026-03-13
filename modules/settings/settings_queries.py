@@ -40,42 +40,31 @@ def update_setting(key, value):
         return False
 
 def get_business_settings():
-    """Get business settings as a dictionary-like object"""
+    """Get business settings, checking both BusinessSettings and SystemSetting tables."""
     try:
-        # Create a simple object to hold settings
+        def _read(key):
+            """Read value from BusinessSettings first, then SystemSetting as fallback."""
+            b = BusinessSettings.query.filter_by(setting_key=key).first()
+            if b and b.setting_value:
+                return b.setting_value
+            s = SystemSetting.query.filter_by(key=key).first()
+            if s and s.value:
+                return s.value
+            return ''
+
         class SettingsObject:
-            def __init__(self):
-                self.business_name = ''
-                self.business_phone = ''
-                self.business_email = ''
-                self.business_address = ''
-                self.tax_rate = 0.0
-                self.currency = 'USD'
-                self.timezone = 'UTC'
+            pass
 
-        settings_obj = SettingsObject()
-
-        # Get all settings from database
-        all_settings = BusinessSettings.query.all()
-
-        # Map settings to object attributes
-        for setting in all_settings:
-            if setting.setting_key == 'business_name':
-                settings_obj.business_name = setting.setting_value or ''
-            elif setting.setting_key == 'business_phone':
-                settings_obj.business_phone = setting.setting_value or ''
-            elif setting.setting_key == 'business_email':
-                settings_obj.business_email = setting.setting_value or ''
-            elif setting.setting_key == 'business_address':
-                settings_obj.business_address = setting.setting_value or ''
-            elif setting.setting_key == 'tax_rate':
-                settings_obj.tax_rate = float(setting.setting_value) if setting.setting_value else 0.0
-            elif setting.setting_key == 'currency':
-                settings_obj.currency = setting.setting_value or 'USD'
-            elif setting.setting_key == 'timezone':
-                settings_obj.timezone = setting.setting_value or 'UTC'
-
-        return settings_obj
+        obj = SettingsObject()
+        obj.business_name    = _read('business_name')
+        obj.business_phone   = _read('business_phone')
+        obj.business_email   = _read('business_email')
+        obj.business_address = _read('business_address')
+        obj.currency         = _read('currency') or 'USD'
+        obj.timezone         = _read('timezone') or 'UTC'
+        raw_tax              = _read('tax_rate')
+        obj.tax_rate         = float(raw_tax) if raw_tax else 0.0
+        return obj
     except Exception as e:
         print(f"Error getting business settings: {e}")
         return None
