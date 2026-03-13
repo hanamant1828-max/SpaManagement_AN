@@ -1,9 +1,22 @@
 from flask import render_template, request, jsonify, redirect, url_for, flash
 from app import app, db
-from models import Service, Category, UnakiBooking, Customer, User, SystemSetting
+from models import Service, Category, UnakiBooking, Customer, User, SystemSetting, BusinessSettings
 from datetime import datetime, date, time, timedelta
 from sqlalchemy import or_
 import re
+
+
+def get_business_setting(key):
+    """Read a business setting, checking SystemSetting first then BusinessSettings as fallback."""
+    sys_setting = SystemSetting.query.filter_by(key=key).first()
+    if sys_setting and sys_setting.value:
+        return sys_setting.value
+
+    biz_setting = BusinessSettings.query.filter_by(setting_key=key).first()
+    if biz_setting and biz_setting.setting_value:
+        return biz_setting.setting_value
+
+    return ''
 
 # Search functionality enabled
 
@@ -12,13 +25,13 @@ import re
 def website_home():
     """Public website homepage"""
     featured_services = Service.query.filter_by(is_active=True).limit(6).all()
-    business_name = SystemSetting.query.filter_by(key='business_name').first()
-    business_phone = SystemSetting.query.filter_by(key='business_phone').first()
+    business_name = get_business_setting('business_name') or 'Spa & Salon Suite'
+    business_phone = get_business_setting('business_phone')
 
     return render_template('website/home.html',
                          featured_services=featured_services,
-                         business_name=business_name.value if business_name else 'Spa & Salon Suite',
-                         business_phone=business_phone.value if business_phone else '')
+                         business_name=business_name,
+                         business_phone=business_phone)
 
 @app.route('/our-services')
 def website_services():
@@ -405,21 +418,13 @@ def website_booking_success(booking_id):
 @app.route('/contact')
 def website_contact():
     """Public contact page with map and business details"""
-    business_settings = {}
-
-    keys = ['business_name', 'business_address', 'business_phone', 'business_email', 
+    keys = ['business_name', 'business_address', 'business_phone', 'business_email',
             'business_hours', 'google_maps_api_key', 'whatsapp_number']
 
-    for key in keys:
-        setting = SystemSetting.query.filter_by(key=key).first()
-        business_settings[key] = setting.value if setting else ''
+    business_settings = {key: get_business_setting(key) for key in keys}
 
     if not business_settings['business_name']:
         business_settings['business_name'] = 'Spa & Salon Suite'
-    if not business_settings['business_address']:
-        business_settings['business_address'] = '123 Main Street, Your City, State 12345'
-    if not business_settings['business_phone']:
-        business_settings['business_phone'] = '+1-555-123-4567'
 
     return render_template('website/contact.html', **business_settings)
 
@@ -440,9 +445,9 @@ def website_gallery():
 @app.route('/about')
 def website_about():
     """About us page"""
-    business_name = SystemSetting.query.filter_by(key='business_name').first()
-    business_description = SystemSetting.query.filter_by(key='business_description').first()
+    business_name = get_business_setting('business_name') or 'Spa & Salon Suite'
+    business_description = get_business_setting('business_description')
 
     return render_template('website/about.html',
-                         business_name=business_name.value if business_name else 'Spa & Salon Suite',
-                         business_description=business_description.value if business_description else '')
+                         business_name=business_name,
+                         business_description=business_description)

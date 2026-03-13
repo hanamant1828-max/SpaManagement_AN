@@ -81,17 +81,30 @@ def get_business_settings():
         return None
 
 def update_business_settings(settings_data):
-    """Update business settings"""
+    """Update business settings in both BusinessSettings and SystemSetting tables"""
     try:
         for key, value in settings_data.items():
-            # Find or create setting
+            str_value = str(value) if value is not None else ''
+
+            # Save to BusinessSettings table
             setting = BusinessSettings.query.filter_by(setting_key=key).first()
             if not setting:
                 setting = BusinessSettings(setting_key=key)
                 db.session.add(setting)
+            setting.setting_value = str_value
 
-            # Update value
-            setting.setting_value = str(value) if value is not None else ''
+            # Also save to SystemSetting table so the public website reads updated values
+            sys_setting = SystemSetting.query.filter_by(key=key).first()
+            if not sys_setting:
+                sys_setting = SystemSetting(
+                    key=key,
+                    value=str_value,
+                    category='business',
+                    display_name=key.replace('_', ' ').title()
+                )
+                db.session.add(sys_setting)
+            else:
+                sys_setting.value = str_value
 
         db.session.commit()
         return True
