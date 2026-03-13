@@ -404,6 +404,34 @@ def utility_processor():
         except:
             return 'Spa & Salon Suite'
 
+    def get_global_business_info():
+        """Get all business contact details for use in every template."""
+        try:
+            from models import SystemSetting, BusinessSettings
+
+            def _read(key):
+                s = SystemSetting.query.filter_by(key=key).first()
+                if s and s.value:
+                    return s.value
+                b = BusinessSettings.query.filter_by(setting_key=key).first()
+                if b and b.setting_value:
+                    return b.setting_value
+                return ''
+
+            return {
+                'global_business_name':    _read('business_name') or 'Spa & Salon Suite',
+                'global_business_phone':   _read('business_phone'),
+                'global_business_email':   _read('business_email'),
+                'global_business_address': _read('business_address'),
+            }
+        except Exception:
+            return {
+                'global_business_name':    'Spa & Salon Suite',
+                'global_business_phone':   '',
+                'global_business_email':   '',
+                'global_business_address': '',
+            }
+
     return dict(
         utils=dict(
             get_month_name=get_month_name,
@@ -416,7 +444,8 @@ def utility_processor():
         ),
         check_permission=check_permission,
         business_logo=get_business_logo(),
-        business_name=get_business_name()
+        business_name=get_business_name(),
+        **get_global_business_info()
     )
 
 # Add root route

@@ -196,8 +196,8 @@
                         <i class="fas fa-envelope"></i>
                     </div>
                     <h4>Email Us</h4>
-                    <p class="text-muted">{{ business_email if business_email else 'info@spasalon.com' }}</p>
-                    <a href="mailto:{{ business_email if business_email else 'info@spasalon.com' }}" class="btn btn-outline-primary btn-sm">
+                    <p class="text-muted">{{ business_email or global_business_email }}</p>
+                    <a href="mailto:{{ business_email or global_business_email }}" class="btn btn-outline-primary btn-sm">
                         <i class="fas fa-envelope me-2"></i>Send Email
                     </a>
                 </div>
@@ -271,11 +271,11 @@
                         </div>
                     </a>
                     
-                    <a href="mailto:{{ business_email if business_email else 'info@spasalon.com' }}" class="contact-button email-button">
+                    <a href="mailto:{{ business_email or global_business_email }}" class="contact-button email-button">
                         <i class="fas fa-envelope"></i>
                         <div>
                             <strong>Email Us</strong><br>
-                            <small>{{ business_email if business_email else 'info@spasalon.com' }}</small>
+                            <small>{{ business_email or global_business_email }}</small>
                         </div>
                     </a>
                 </div>

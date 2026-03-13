@@ -808,22 +808,25 @@ def update_business_settings_route():
         flash('Access denied', 'danger')
         return redirect(url_for('dashboard'))
 
-    form = BusinessSettingsForm()
-    if form.validate_on_submit():
-        settings_data = {
-            'business_name': form.business_name.data,
-            'business_phone': form.business_phone.data,
-            'business_email': form.business_email.data,
-            'business_address': form.business_address.data,
-            'tax_rate': form.tax_rate.data,
-            'currency': form.currency.data,
-            'timezone': form.timezone.data
-        }
+    business_name = request.form.get('business_name', '').strip()
+    if not business_name:
+        flash('Business name is required.', 'danger')
+        return redirect(url_for('settings'))
 
-        update_business_settings(settings_data)
+    settings_data = {
+        'business_name': business_name,
+        'business_phone': request.form.get('business_phone', '').strip(),
+        'business_email': request.form.get('business_email', '').strip(),
+        'business_address': request.form.get('business_address', '').strip(),
+        'tax_rate': request.form.get('tax_rate', '0').strip(),
+        'currency': request.form.get('currency', 'USD').strip(),
+        'timezone': request.form.get('timezone', 'UTC').strip(),
+    }
+
+    if update_business_settings(settings_data):
         flash('Business settings updated successfully!', 'success')
     else:
-        flash('Error updating business settings. Please check your input.', 'danger')
+        flash('Error saving business settings. Please try again.', 'danger')
 
     return redirect(url_for('settings'))
 

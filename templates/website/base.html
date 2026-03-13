@@ -365,9 +365,9 @@
                 </div>
                 <div class="col-md-4 mb-4">
                     <h5>Contact Info</h5>
-                    <p><i class="fas fa-phone me-2"></i>{{ business_phone if business_phone else '+1-555-123-4567' }}</p>
-                    <p><i class="fas fa-envelope me-2"></i>{{ business_email if business_email else 'info@spasalon.com' }}</p>
-                    <p><i class="fas fa-map-marker-alt me-2"></i>{{ business_address if business_address else '123 Main Street' }}</p>
+                    {% if global_business_phone %}<p><i class="fas fa-phone me-2"></i>{{ global_business_phone }}</p>{% endif %}
+                    {% if global_business_email %}<p><i class="fas fa-envelope me-2"></i>{{ global_business_email }}</p>{% endif %}
+                    {% if global_business_address %}<p><i class="fas fa-map-marker-alt me-2"></i>{{ global_business_address }}</p>{% endif %}
                 </div>
             </div>
             <hr class="mt-4" style="border-color: #D4AF37; opacity: 0.5;">
