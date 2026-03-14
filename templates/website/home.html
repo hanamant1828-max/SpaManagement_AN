@@ -562,10 +562,13 @@
             <a href="{{ url_for('website_book_online') }}" class="btn btn-light btn-lg me-3">
                 <i class="fas fa-calendar-plus me-2"></i>Book Now
             </a>
-            <a href="https://wa.me/{{ business_phone.replace('+', '').replace('-', '').replace(' ', '') if business_phone else '15551234567' }}?text=Hello!%20I%20would%20like%20to%20learn%20more%20about%20your%20services." 
+            {% set wa = global_whatsapp_number %}
+            {% if wa %}
+            <a href="https://wa.me/{{ wa }}?text=Hello!%20I%20would%20like%20to%20learn%20more%20about%20your%20services." 
                class="btn btn-outline-light btn-lg" target="_blank">
                 <i class="fab fa-whatsapp me-2"></i>Chat on WhatsApp
             </a>
+            {% endif %}
         </div>
     </div>
 </section>

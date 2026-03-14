@@ -430,11 +430,19 @@ def utility_processor():
                         return ' '.join(g.value.split())
                 return ''
 
+            phone = _read('business_phone')
+            # WhatsApp number: prefer explicit setting, fall back to business phone
+            wa_raw = (_read('whatsapp_number') or _read('business_whatsapp_number') or
+                      _read('whatsapp_business_number') or phone)
+            # Strip formatting characters so it works directly in wa.me URLs
+            wa_clean = re.sub(r'[\s\+\-\(\)]', '', wa_raw) if wa_raw else ''
+
             return {
                 'global_business_name':    _read('business_name') or 'Spa & Salon Suite',
-                'global_business_phone':   _read('business_phone'),
+                'global_business_phone':   phone,
                 'global_business_email':   _read('business_email'),
                 'global_business_address': _read('business_address'),
+                'global_whatsapp_number':  wa_clean,
             }
         except Exception:
             return {
@@ -442,6 +450,7 @@ def utility_processor():
                 'global_business_phone':   '',
                 'global_business_email':   '',
                 'global_business_address': '',
+                'global_whatsapp_number':  '',
             }
 
     return dict(
