@@ -7,14 +7,32 @@ import re
 
 
 def get_business_setting(key):
-    """Read a business setting, checking SystemSetting first then BusinessSettings as fallback."""
-    sys_setting = SystemSetting.query.filter_by(key=key).first()
-    if sys_setting and sys_setting.value:
-        return sys_setting.value
+    """Read a business setting, checking SystemSetting then BusinessSettings then GST keys as fallback."""
+    # GST key mapping: regular key -> GST fallback key
+    gst_fallback = {
+        'business_name':    'gst_business_name',
+        'business_address': 'gst_business_address',
+        'business_phone':   'gst_phone',
+        'business_email':   'gst_email',
+        'business_state':   'gst_state',
+    }
 
+    # 1. Check SystemSetting with the direct key
+    sys_setting = SystemSetting.query.filter_by(key=key).first()
+    if sys_setting and sys_setting.value and sys_setting.value.strip():
+        return sys_setting.value.strip()
+
+    # 2. Check BusinessSettings table
     biz_setting = BusinessSettings.query.filter_by(setting_key=key).first()
-    if biz_setting and biz_setting.setting_value:
-        return biz_setting.setting_value
+    if biz_setting and biz_setting.setting_value and biz_setting.setting_value.strip():
+        return biz_setting.setting_value.strip()
+
+    # 3. Fall back to GST settings stored under a different key
+    if key in gst_fallback:
+        gst_key = gst_fallback[key]
+        gst_setting = SystemSetting.query.filter_by(key=gst_key).first()
+        if gst_setting and gst_setting.value and gst_setting.value.strip():
+            return ' '.join(gst_setting.value.split())  # collapse whitespace
 
     return ''
 
@@ -419,7 +437,7 @@ def website_booking_success(booking_id):
 def website_contact():
     """Public contact page with map and business details"""
     keys = ['business_name', 'business_address', 'business_phone', 'business_email',
-            'business_hours', 'google_maps_api_key', 'whatsapp_number']
+            'business_state', 'business_hours', 'google_maps_api_key', 'whatsapp_number']
 
     business_settings = {key: get_business_setting(key) for key in keys}
 

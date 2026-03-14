@@ -405,17 +405,29 @@ def utility_processor():
             return 'Spa & Salon Suite'
 
     def get_global_business_info():
-        """Get all business contact details for use in every template."""
+        """Get all business contact details for use in every template.
+        Priority: business_* keys → BusinessSettings table → gst_* keys."""
         try:
             from models import SystemSetting, BusinessSettings
 
+            gst_map = {
+                'business_name':    'gst_business_name',
+                'business_address': 'gst_business_address',
+                'business_phone':   'gst_phone',
+                'business_email':   'gst_email',
+            }
+
             def _read(key):
                 s = SystemSetting.query.filter_by(key=key).first()
-                if s and s.value:
-                    return s.value
+                if s and s.value and s.value.strip():
+                    return s.value.strip()
                 b = BusinessSettings.query.filter_by(setting_key=key).first()
-                if b and b.setting_value:
-                    return b.setting_value
+                if b and b.setting_value and b.setting_value.strip():
+                    return b.setting_value.strip()
+                if key in gst_map:
+                    g = SystemSetting.query.filter_by(key=gst_map[key]).first()
+                    if g and g.value and g.value.strip():
+                        return ' '.join(g.value.split())
                 return ''
 
             return {
