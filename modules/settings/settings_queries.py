@@ -116,8 +116,8 @@ def get_gst_settings():
 
         product_cgst = float(product_cgst_raw) if product_cgst_raw is not None and product_cgst_raw != '' else default_cgst
         product_sgst = float(product_sgst_raw) if product_sgst_raw is not None and product_sgst_raw != '' else default_sgst
-        service_cgst = float(service_cgst_raw) if service_cgst_raw is not None and service_cgst_raw != '' else default_cgst
-        service_sgst = float(service_sgst_raw) if service_sgst_raw is not None and service_sgst_raw != '' else default_sgst
+        service_cgst = float(service_cgst_raw) if service_cgst_raw is not None and service_cgst_raw != '' else 2.5
+        service_sgst = float(service_sgst_raw) if service_sgst_raw is not None and service_sgst_raw != '' else 2.5
 
         gst_settings = {
             'enabled': get_setting_by_key('gst_enabled') == 'True',
@@ -154,7 +154,7 @@ def get_gst_settings():
             'product_cgst_rate': 9.0,
             'product_sgst_rate': 9.0,
             'product_gst_rate': 18.0,
-            'service_cgst_rate': 9.0,
-            'service_sgst_rate': 9.0,
-            'service_gst_rate': 18.0,
+            'service_cgst_rate': 2.5,
+            'service_sgst_rate': 2.5,
+            'service_gst_rate': 5.0,
         }
