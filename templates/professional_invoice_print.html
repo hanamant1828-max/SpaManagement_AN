@@ -579,52 +579,49 @@
                 <div class="right-footer">
                     {% set tips_amt = invoice.tips_amount or 0 %}
                     {% set total_tax = tax_details.get('cgst_amount', 0) + tax_details.get('sgst_amount', 0) + tax_details.get('igst_amount', 0) %}
-                    {% set subtotal = invoice.total_amount - total_tax - tips_amt %}
+                    {% set gross = invoice.gross_subtotal or (invoice.total_amount - total_tax - tips_amt + (invoice.discount_amount or 0)) %}
+                    {% set taxable = invoice.net_subtotal or (invoice.total_amount - total_tax - tips_amt) %}
                     <div class="subtotal-section">
-                        Sub Total (before GST): ₹{{ "%.2f"|format(subtotal) }}
+                        Subtotal: ₹{{ "%.2f"|format(gross) }}
                     </div>
 
                     <table class="summary-table">
                         <tr>
                             <td class="label">Discount:</td>
                             <td class="value">
-                                ₹{{ "%.2f"|format(invoice.discount_amount or 0)
-                                }}
+                                ₹{{ "%.2f"|format(invoice.discount_amount or 0) }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label"><strong>Taxable Amount:</strong></td>
+                            <td class="value">
+                                <strong>₹{{ "%.2f"|format(taxable) }}</strong>
                             </td>
                         </tr>
                         {% if not tax_details.get('is_interstate') %}
                         <tr>
                             <td class="label">
-                                SGST ({{
-                                "%.0f"|format(tax_details.get('sgst_rate', 0))
-                                }}%):
+                                CGST ({{ "%.0f"|format(tax_details.get('cgst_rate', 0)) }}%):
                             </td>
                             <td class="value">
-                                ₹{{ "%.2f"|format(tax_details.get('sgst_amount',
-                                0)) }}
+                                ₹{{ "%.2f"|format(tax_details.get('cgst_amount', 0)) }}
                             </td>
                         </tr>
                         <tr>
                             <td class="label">
-                                CGST ({{
-                                "%.0f"|format(tax_details.get('cgst_rate', 0))
-                                }}%):
+                                SGST ({{ "%.0f"|format(tax_details.get('sgst_rate', 0)) }}%):
                             </td>
                             <td class="value">
-                                ₹{{ "%.2f"|format(tax_details.get('cgst_amount',
-                                0)) }}
+                                ₹{{ "%.2f"|format(tax_details.get('sgst_amount', 0)) }}
                             </td>
                         </tr>
                         {% else %}
                         <tr>
                             <td class="label">
-                                IGST ({{
-                                "%.0f"|format(tax_details.get('igst_rate', 0))
-                                }}%):
+                                IGST ({{ "%.0f"|format(tax_details.get('igst_rate', 0)) }}%):
                             </td>
                             <td class="value">
-                                ₹{{ "%.2f"|format(tax_details.get('igst_amount',
-                                0)) }}
+                                ₹{{ "%.2f"|format(tax_details.get('igst_amount', 0)) }}
                             </td>
                         </tr>
                         {% endif %}
@@ -637,25 +634,19 @@
                         <tr class="total-row">
                             <td class="label"><strong>Total</strong></td>
                             <td class="value">
-                                <strong
-                                    >₹{{ "%.2f"|format(invoice.total_amount)
-                                    }}</strong
-                                >
+                                <strong>₹{{ "%.2f"|format(invoice.total_amount) }}</strong>
                             </td>
                         </tr>
                         <tr>
                             <td class="label">Received:</td>
                             <td class="value">
-                                ₹{{ "%.2f"|format(invoice.amount_paid or
-                                invoice.total_amount) }}
+                                ₹{{ "%.2f"|format(invoice.amount_paid or invoice.total_amount) }}
                             </td>
                         </tr>
                         <tr>
                             <td class="label">Balance:</td>
                             <td class="value">
-                                ₹{{ "%.2f"|format((invoice.total_amount -
-                                (invoice.amount_paid or
-                                invoice.total_amount))|abs) }}
+                                ₹{{ "%.2f"|format((invoice.total_amount - (invoice.amount_paid or invoice.total_amount))|abs) }}
                             </td>
                         </tr>
                     </table>

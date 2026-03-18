@@ -1353,33 +1353,28 @@ def create_professional_invoice():
                     cgst_total += item_tax / 2
                     sgst_total += item_tax / 2
 
-        # For PRODUCTS: Assuming MRP is inclusive of tax, but we don't extract it for now per previous logic
-        # Unless specified otherwise, products are handled as before
-        inventory_base_amount = inventory_subtotal
+        # For PRODUCTS: MRP is final price, no GST extracted (matches JS logic)
         inventory_gst_amount = 0
 
-        # Total amounts
-        total_base_amount = sum(s.get('base_amount', 0) for s in services_data) + inventory_base_amount
-        
-        # Calculate discount on total base amount
+        # Calculate discount on gross_subtotal (full MRP totals — matches JS updateCalculations)
         discount_type = request.form.get('discount_type', 'amount')
         discount_value = float(request.form.get('discount_value', 0))
         if discount_type == 'percentage':
-            discount_amount = (total_base_amount * discount_value) / 100
+            discount_amount = (gross_subtotal * discount_value) / 100
         else:
             discount_amount = discount_value
 
-        # Net base after discount
-        net_base_amount = max(0, total_base_amount - discount_amount)
-        
-        # Pro-rata tax adjustment if discount applied
-        if total_base_amount > 0 and discount_amount > 0:
-            adjustment_factor = net_base_amount / total_base_amount
+        # Taxable amount = MRP subtotal minus discount (matches JS taxableAmountAfterTax)
+        taxable_amount = max(0, gross_subtotal - discount_amount)
+
+        # Pro-rata GST adjustment for discount (matches JS discountFactor logic)
+        if gross_subtotal > 0 and discount_amount > 0:
+            adjustment_factor = taxable_amount / gross_subtotal
             total_tax *= adjustment_factor
             cgst_total *= adjustment_factor
             sgst_total *= adjustment_factor
             igst_total *= adjustment_factor
-            
+
             # Update individual service tax data for InvoiceItems
             for s in services_data:
                 s['tax_amount'] *= adjustment_factor
@@ -1391,12 +1386,13 @@ def create_professional_invoice():
         sgst_amount = sgst_total
         igst_amount = igst_total
 
-        net_subtotal = net_base_amount
+        net_subtotal = taxable_amount
         additional_charges = float(request.form.get('additional_charges', 0))
         tips_amount = float(request.form.get('tips_amount', 0))
 
-        # Final total: base amount + tax + charges + tips
-        total_amount = net_base_amount + total_tax + additional_charges + tips_amount
+        # Final total: taxable (MRP-after-discount) + extracted GST + charges + tips
+        # Matches JS: grandTotal = taxableAmountAfterTax + totalGst + additionalCharges + tips
+        total_amount = taxable_amount + total_tax + additional_charges + tips_amount
 
         # Create professional invoice with proper transaction handling
         try:
@@ -2269,7 +2265,7 @@ def integrated_invoice_detail(invoice_id):
         import json
         tax_details = {}
         try:
-            tax_details = json.loads(invoice.notes) if invoice.notes else {}
+            tax_details = json.loads(invoice.tax_breakdown) if invoice.tax_breakdown else {}
         except:
             pass
 
@@ -2694,30 +2690,71 @@ def update_integrated_invoice(invoice_id):
 
         net_subtotal = max(0, gross_subtotal - discount_amount)
 
-        # Unified GST Inclusive logic: Extract tax from net_subtotal
-        # tax_amount = net_subtotal * (total_gst_rate / (1 + total_gst_rate))
-        # But wait, the standard formula for inclusive tax is: Tax = MRP - (MRP / (1 + Rate))
-        tax_amount = net_subtotal - (net_subtotal / (1 + total_gst_rate))
+        # Extract GST from service MRPs only — products have no separate GST (matches JS logic)
+        if total_gst_rate > 0:
+            service_gst_pre_discount = services_subtotal * total_gst_rate / (1 + total_gst_rate)
+        else:
+            service_gst_pre_discount = 0
+
+        # Adjust GST proportionally for discount (matches JS discountFactor logic)
+        if gross_subtotal > 0:
+            discount_factor = net_subtotal / gross_subtotal
+            total_gst = service_gst_pre_discount * discount_factor
+        else:
+            total_gst = service_gst_pre_discount
+
+        if is_interstate:
+            cgst_amount = 0
+            sgst_amount = 0
+            igst_amount = total_gst
+        else:
+            cgst_amount = total_gst / 2
+            sgst_amount = total_gst / 2
+            igst_amount = 0
+
+        tax_amount = total_gst
 
         additional_charges = float(request.form.get('additional_charges', 0))
         tips_amount = float(request.form.get('tips_amount', 0))
 
-        total_amount = net_subtotal + additional_charges + tips_amount
+        # Matches JS: grandTotal = taxableAmountAfterTax + totalGst + additionalCharges + tips
+        total_amount = net_subtotal + total_gst + additional_charges + tips_amount
 
         # Update invoice
         invoice.payment_method = request.form.get('payment_method', 'cash')
         invoice.notes = request.form.get('notes', '')
-        
-        # Log update for debugging
+
         app.logger.info(f"Updating invoice {invoice_id}: payment_method={invoice.payment_method}, notes={invoice.notes}")
-        invoice.net_subtotal = net_subtotal - tax_amount
-        invoice.gross_subtotal = gross_subtotal # Keep track of original MRP total
+        invoice.net_subtotal = net_subtotal
+        invoice.gross_subtotal = gross_subtotal
         invoice.discount_amount = discount_amount
         invoice.tax_amount = tax_amount
+        invoice.cgst_amount = cgst_amount
+        invoice.sgst_amount = sgst_amount
+        invoice.igst_amount = igst_amount
+        invoice.cgst_rate = (cgst_rate * 100) if not is_interstate else 0
+        invoice.sgst_rate = (sgst_rate * 100) if not is_interstate else 0
+        invoice.igst_rate = (igst_rate * 100) if is_interstate else 0
         invoice.additional_charges = additional_charges
         invoice.tips_amount = tips_amount
         invoice.total_amount = total_amount
-        invoice.balance_due = total_amount - invoice.amount_paid
+        invoice.amount_paid = total_amount
+        invoice.balance_due = 0.0
+
+        # Persist tax breakdown so print routes can read correct values
+        tax_breakdown_update = {
+            'cgst_rate': invoice.cgst_rate,
+            'sgst_rate': invoice.sgst_rate,
+            'igst_rate': invoice.igst_rate,
+            'cgst_amount': cgst_amount,
+            'sgst_amount': sgst_amount,
+            'igst_amount': igst_amount,
+            'is_interstate': is_interstate,
+            'additional_charges': additional_charges,
+            'payment_terms': request.form.get('payment_terms', invoice.payment_terms or 'immediate'),
+            'payment_method': invoice.payment_method,
+        }
+        invoice.tax_breakdown = json.dumps(tax_breakdown_update)
         
         # Save package deductions total if the field exists
         if hasattr(invoice, 'package_deductions'):
@@ -2868,7 +2905,7 @@ def print_professional_invoice(invoice_id):
     import json
     tax_details = {}
     try:
-        tax_details = json.loads(invoice.notes) if invoice.notes else {}
+        tax_details = json.loads(invoice.tax_breakdown) if invoice.tax_breakdown else {}
     except:
         pass
 
