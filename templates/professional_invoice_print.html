@@ -332,10 +332,10 @@
             {% set services = invoice_items|rejectattr('is_product')|list if
             invoice_items|selectattr('is_product')|list else
             invoice_items|rejectattr('item_type', 'equalto', 'product')|list %}
-            {% if invoice.is_interstate %}
-            {% set gst_rate = invoice.igst_rate or 0 %}
+            {% if tax_details.get('is_interstate') %}
+            {% set gst_rate = tax_details.get('igst_rate', invoice.igst_rate or 0) %}
             {% else %}
-            {% set gst_rate = (invoice.cgst_rate or 0) + (invoice.sgst_rate or 0) %}
+            {% set gst_rate = tax_details.get('cgst_rate', invoice.cgst_rate or 0) + tax_details.get('sgst_rate', invoice.sgst_rate or 0) %}
             {% endif %}
 
             <!-- PRODUCTS SECTION (GST Inclusive) -->
