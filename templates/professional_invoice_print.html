@@ -340,13 +340,11 @@
             invoice_items|selectattr('is_product')|list else
             invoice_items|rejectattr('item_type', 'equalto', 'product')|list %}
             {% if tax_details.get('is_interstate') %}
-            {% set gst_rate = tax_details.get('igst_rate', invoice.igst_rate or 0) %}
-            {% set product_gst_rate = tax_details.get('igst_rate', invoice.igst_rate or 0) %}
-            {% set service_gst_rate = tax_details.get('igst_rate', invoice.igst_rate or 0) %}
+            {% set product_gst_rate = tax_details.get('product_gst_rate', 18) %}
+            {% set service_gst_rate = tax_details.get('service_gst_rate', 5) %}
             {% else %}
-            {% set gst_rate = tax_details.get('cgst_rate', invoice.cgst_rate or 0) + tax_details.get('sgst_rate', invoice.sgst_rate or 0) %}
-            {% set product_gst_rate = tax_details.get('product_gst_rate', gst_rate) %}
-            {% set service_gst_rate = tax_details.get('service_gst_rate', gst_rate) %}
+            {% set product_gst_rate = tax_details.get('product_gst_rate', 18) %}
+            {% set service_gst_rate = tax_details.get('service_gst_rate', 5) %}
             {% endif %}
 
             <!-- PRODUCTS SECTION (GST Inclusive) -->
@@ -368,20 +366,18 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% set product_subtotal = namespace(base=0, gst=0, total=0)
-                    %} {% for item in products %} {% set mrp_price =
-                    item.selling_price or item.unit_price %} {# For PRODUCTS:
-                    GST is INCLUSIVE in MRP - subtract using product_gst_rate #}
-                    {% set base_price = mrp_price / (1 + product_gst_rate/100) if product_gst_rate > 0 else mrp_price %} {% set
-                    gst_per_unit = mrp_price - base_price %} {% set
-                    total_base_amount = base_price * item.quantity %} {% set
-                    total_gst_amount = gst_per_unit * item.quantity %} {% set
-                    total_amount = mrp_price * item.quantity %} {% set
-                    product_subtotal.base = product_subtotal.base +
-                    total_base_amount %} {% set product_subtotal.gst =
-                    product_subtotal.gst + total_gst_amount %} {% set
-                    product_subtotal.total = product_subtotal.total +
-                    total_amount %}
+                    {% set product_subtotal = namespace(base=0, gst=0, total=0) %}
+                    {% for item in products %}
+                    {% set mrp_price = item.selling_price or item.unit_price %}
+                    {% set item_gst_rate = item.gst_percentage if item.gst_percentage else product_gst_rate %}
+                    {% set base_price = mrp_price / (1 + item_gst_rate/100) if item_gst_rate > 0 else mrp_price %}
+                    {% set gst_per_unit = mrp_price - base_price %}
+                    {% set total_base_amount = base_price * item.quantity %}
+                    {% set total_gst_amount = gst_per_unit * item.quantity %}
+                    {% set total_amount = mrp_price * item.quantity %}
+                    {% set product_subtotal.base = product_subtotal.base + total_base_amount %}
+                    {% set product_subtotal.gst = product_subtotal.gst + total_gst_amount %}
+                    {% set product_subtotal.total = product_subtotal.total + total_amount %}
 
                     <tr>
                         <td>{{ loop.index }}</td>
@@ -401,12 +397,13 @@
                             item.deduction_amount or 0) }}%
                         </td>
                         <td class="price">
-                            {% if tax_details.get('is_interstate') %} IGST {{
-                            "%.0f"|format(tax_details.get('igst_rate', 0))
-                            }}%<br />
-                            ₹{{ "%.2f"|format(total_gst_amount) }} {% else %}
-                            GST {{ "%.0f"|format(product_gst_rate) }}%<br />
-                            ₹{{ "%.2f"|format(total_gst_amount) }} {% endif %}
+                            {% if tax_details.get('is_interstate') %}
+                            IGST {{ "%.0f"|format(item_gst_rate) }}%<br />
+                            ₹{{ "%.2f"|format(total_gst_amount) }}
+                            {% else %}
+                            GST {{ "%.0f"|format(item_gst_rate) }}%<br />
+                            ₹{{ "%.2f"|format(total_gst_amount) }}
+                            {% endif %}
                         </td>
                         <td class="price">
                             ₹{{ "%.2f"|format(total_amount) }}
@@ -460,20 +457,18 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% set service_subtotal = namespace(base=0, gst=0, total=0)
-                    %} {% for item in services %}
+                    {% set service_subtotal = namespace(base=0, gst=0, total=0) %}
+                    {% for item in services %}
                     {% set mrp_price = item.selling_price or item.unit_price %}
-                    {% set item_gst_rate = service_gst_rate %}
+                    {% set item_gst_rate = item.gst_percentage if item.gst_percentage else service_gst_rate %}
                     {% set base_price = mrp_price / (1 + item_gst_rate/100) if item_gst_rate > 0 else mrp_price %}
-                    {% set gst_per_unit = mrp_price - base_price %} {% set
-                    total_base_amount = base_price * item.quantity %} {% set
-                    total_gst_amount = gst_per_unit * item.quantity %} {% set
-                    total_amount = mrp_price * item.quantity %} {%
-                    set service_subtotal.base = service_subtotal.base +
-                    total_base_amount %} {% set service_subtotal.gst =
-                    service_subtotal.gst + total_gst_amount %} {% set
-                    service_subtotal.total = service_subtotal.total +
-                    total_amount %}
+                    {% set gst_per_unit = mrp_price - base_price %}
+                    {% set total_base_amount = base_price * item.quantity %}
+                    {% set total_gst_amount = gst_per_unit * item.quantity %}
+                    {% set total_amount = mrp_price * item.quantity %}
+                    {% set service_subtotal.base = service_subtotal.base + total_base_amount %}
+                    {% set service_subtotal.gst = service_subtotal.gst + total_gst_amount %}
+                    {% set service_subtotal.total = service_subtotal.total + total_amount %}
 
                     <tr>
                         <td>{{ loop.index }}</td>
@@ -493,12 +488,13 @@
                             item.deduction_amount or 0) }}%
                         </td>
                         <td class="price">
-                            {% if tax_details.get('is_interstate') %} IGST {{
-                            "%.0f"|format(tax_details.get('igst_rate', 0))
-                            }}%<br />
-                            ₹{{ "%.2f"|format(total_gst_amount) }} {% else %}
+                            {% if tax_details.get('is_interstate') %}
+                            IGST {{ "%.0f"|format(item_gst_rate) }}%<br />
+                            ₹{{ "%.2f"|format(total_gst_amount) }}
+                            {% else %}
                             GST {{ "%.0f"|format(item_gst_rate) }}%<br />
-                            ₹{{ "%.2f"|format(total_gst_amount) }} {% endif %}
+                            ₹{{ "%.2f"|format(total_gst_amount) }}
+                            {% endif %}
                         </td>
                         <td class="price">
                             ₹{{ "%.2f"|format(total_amount) }}
@@ -595,7 +591,12 @@
 
                 <div class="right-footer">
                     {% set tips_amt = invoice.tips_amount or 0 %}
-                    {% set total_tax = tax_details.get('cgst_amount', 0) + tax_details.get('sgst_amount', 0) + tax_details.get('igst_amount', 0) %}
+                    {% set cgst_amt = tax_details.get('cgst_amount', invoice.cgst_amount or 0) %}
+                    {% set sgst_amt = tax_details.get('sgst_amount', invoice.sgst_amount or 0) %}
+                    {% set igst_amt = tax_details.get('igst_amount', invoice.igst_amount or 0) %}
+                    {% set total_tax = cgst_amt + sgst_amt + igst_amt %}
+                    {% set svc_gst_amt = tax_details.get('service_gst_amount', 0) %}
+                    {% set prd_gst_amt = tax_details.get('product_gst_amount', 0) %}
                     {% set gross = invoice.gross_subtotal or (invoice.total_amount - total_tax - tips_amt + (invoice.discount_amount or 0)) %}
                     {% set taxable = invoice.net_subtotal or (invoice.total_amount - total_tax - tips_amt) %}
                     <div class="subtotal-section">
@@ -616,30 +617,42 @@
                             </td>
                         </tr>
                         {% if not tax_details.get('is_interstate') %}
+                        {% if svc_gst_amt > 0 %}
                         <tr>
-                            <td class="label">
-                                CGST ({{ "%.0f"|format(tax_details.get('cgst_rate', 0)) }}%):
-                            </td>
-                            <td class="value">
-                                ₹{{ "%.2f"|format(tax_details.get('cgst_amount', 0)) }}
-                            </td>
+                            <td class="label">Service GST ({{ "%.0f"|format(service_gst_rate) }}%):</td>
+                            <td class="value">₹{{ "%.2f"|format(svc_gst_amt) }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if prd_gst_amt > 0 %}
+                        <tr>
+                            <td class="label">Product GST ({{ "%.0f"|format(product_gst_rate) }}%):</td>
+                            <td class="value">₹{{ "%.2f"|format(prd_gst_amt) }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td class="label">CGST:</td>
+                            <td class="value">₹{{ "%.2f"|format(cgst_amt) }}</td>
                         </tr>
                         <tr>
-                            <td class="label">
-                                SGST ({{ "%.0f"|format(tax_details.get('sgst_rate', 0)) }}%):
-                            </td>
-                            <td class="value">
-                                ₹{{ "%.2f"|format(tax_details.get('sgst_amount', 0)) }}
-                            </td>
+                            <td class="label">SGST:</td>
+                            <td class="value">₹{{ "%.2f"|format(sgst_amt) }}</td>
                         </tr>
                         {% else %}
+                        {% if svc_gst_amt > 0 %}
                         <tr>
-                            <td class="label">
-                                IGST ({{ "%.0f"|format(tax_details.get('igst_rate', 0)) }}%):
-                            </td>
-                            <td class="value">
-                                ₹{{ "%.2f"|format(tax_details.get('igst_amount', 0)) }}
-                            </td>
+                            <td class="label">Service IGST ({{ "%.0f"|format(service_gst_rate) }}%):</td>
+                            <td class="value">₹{{ "%.2f"|format(svc_gst_amt) }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if prd_gst_amt > 0 %}
+                        <tr>
+                            <td class="label">Product IGST ({{ "%.0f"|format(product_gst_rate) }}%):</td>
+                            <td class="value">₹{{ "%.2f"|format(prd_gst_amt) }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td class="label">IGST:</td>
+                            <td class="value">₹{{ "%.2f"|format(igst_amt) }}</td>
                         </tr>
                         {% endif %}
                         {% set additional_charges_amt = invoice.additional_charges or tax_details.get('additional_charges', 0) or 0 %}

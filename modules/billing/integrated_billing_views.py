@@ -1526,6 +1526,11 @@ def create_professional_invoice():
                 invoice.payment_method = payment_method
                 payment_methods_dict = {payment_method: total_amount}
 
+            # Compute adjusted service/product GST split for storage
+            _adj_factor = taxable_amount / gross_subtotal if gross_subtotal > 0 else 1.0
+            _product_gst_adj = inventory_gst_amount * _adj_factor
+            _service_gst_adj = total_tax - _product_gst_adj
+
             # Tax breakdown for legacy support and invoice printing
             tax_breakdown = {
                 'cgst_rate': cgst_rate * 100,
@@ -1545,6 +1550,8 @@ def create_professional_invoice():
                 'product_cgst_rate': gst_config.get('product_cgst_rate', gst_config['cgst_rate']),
                 'product_sgst_rate': gst_config.get('product_sgst_rate', gst_config['sgst_rate']),
                 'product_gst_rate': gst_config.get('product_gst_rate', gst_config['cgst_rate'] + gst_config['sgst_rate']),
+                'service_gst_amount': _service_gst_adj,
+                'product_gst_amount': _product_gst_adj,
             }
 
             invoice.payment_methods = json.dumps(payment_methods_dict)
@@ -1853,6 +1860,8 @@ def create_professional_invoice():
 
                     # Create invoice item with staff tracking
                     product_amount = item_data['unit_price'] * item_data['quantity']
+                    prod_gst_pct = gst_config.get('product_gst_rate', 18.0)
+                    prod_gst_amt = item_data.get('tax_amount', product_amount * prod_gst_pct / (100.0 + prod_gst_pct))
 
                     item = InvoiceItem(
                         invoice_id=invoice.id,
@@ -1867,10 +1876,18 @@ def create_professional_invoice():
                         unit_price=item_data['unit_price'],
                         original_amount=product_amount,
                         final_amount=product_amount,
-                        staff_revenue_price=product_amount,  # Track product revenue for staff commission
+                        staff_revenue_price=product_amount,
                         staff_id=staff_id,
                         staff_name=staff_name,
-                        is_product=True # Inventory item is a product
+                        is_product=True,
+                        gst_percentage=prod_gst_pct,
+                        cgst_rate=0 if is_interstate else prod_gst_pct / 2,
+                        sgst_rate=0 if is_interstate else prod_gst_pct / 2,
+                        igst_rate=prod_gst_pct if is_interstate else 0,
+                        gst_amount=prod_gst_amt,
+                        cgst_amount=0 if is_interstate else prod_gst_amt / 2,
+                        sgst_amount=0 if is_interstate else prod_gst_amt / 2,
+                        igst_amount=prod_gst_amt if is_interstate else 0,
                     )
                     db.session.add(item)
                     inventory_items_created += 1
@@ -2595,12 +2612,18 @@ def update_integrated_invoice(invoice_id):
                 })
 
         # Process services for actual amounts
+        # Load system GST rates (5% services, 18% products)
+        from modules.settings.settings_queries import get_gst_settings
+        gst_config_data = get_gst_settings()
+        service_gst_rate_pct = gst_config_data.get('service_gst_rate', 5.0)
+        product_gst_rate_pct = gst_config_data.get('product_gst_rate', 18.0)
+
         processed_services = []
         for s in services_data:
             service = Service.query.get(s['service_id'])
             if service:
-                # Basic tax info for calculations
-                gst_pct = service.gst_percentage or 18.0
+                # Use system-wide service GST rate (5%), not per-service default
+                gst_pct = service_gst_rate_pct
                 tax_divisor = 1 + (gst_pct / 100)
                 
                 # Prices are usually MRP (inclusive of GST)
@@ -2660,22 +2683,14 @@ def update_integrated_invoice(invoice_id):
         
         services_data = processed_services
 
-        # Recalculate tax and totals
-        cgst_rate = float(request.form.get('cgst_rate', 9)) / 100
-        sgst_rate = float(request.form.get('sgst_rate', 9)) / 100
-        igst_rate = float(request.form.get('igst_rate', 0)) / 100
-        total_gst_rate = igst_rate if is_interstate else (cgst_rate + sgst_rate)
-
-        # Recalculate amounts (accounting for package deductions)
+        # Recalculate subtotals
         services_subtotal = 0
         total_package_deductions = 0
         for s in services_data:
             service = Service.query.get(s['service_id'])
             if service:
-                # Use original MRP price for staff revenue calculation
                 original_price = service.price * s['quantity']
-                s['unit_price'] = service.price # Ensure unit_price is available
-                
+                s['unit_price'] = service.price
                 deduction = s.get('deduction_amount', 0.0)
                 is_pkg_deduction = s.get('is_package_deduction', False)
                 if is_pkg_deduction and deduction > 0:
@@ -2683,54 +2698,46 @@ def update_integrated_invoice(invoice_id):
                     services_subtotal += original_price - deduction
                 else:
                     services_subtotal += original_price
-        
-        # Calculate product subtotal correctly
+
         inventory_subtotal = sum(
             item['unit_price'] * item['quantity']
             for item in inventory_data
         )
-
         gross_subtotal = services_subtotal + inventory_subtotal
 
-        # Recalculate tax and totals (values already parsed above)
         discount_type = request.form.get('discount_type', 'amount')
         discount_value = float(request.form.get('discount_value', 0))
-
         if discount_type == 'percentage':
             discount_amount = (gross_subtotal * discount_value) / 100
         else:
             discount_amount = discount_value
 
         net_subtotal = max(0, gross_subtotal - discount_amount)
+        discount_factor = net_subtotal / gross_subtotal if gross_subtotal > 0 else 1.0
 
-        # Extract GST from service MRPs only — products have no separate GST (matches JS logic)
-        if total_gst_rate > 0:
-            service_gst_pre_discount = services_subtotal * total_gst_rate / (1 + total_gst_rate)
-        else:
-            service_gst_pre_discount = 0
+        # Extract GST from each category separately (inclusive pricing)
+        # Services: 5% GST inclusive
+        service_taxable = services_subtotal * discount_factor
+        service_gst = service_taxable * service_gst_rate_pct / (100.0 + service_gst_rate_pct) if service_gst_rate_pct > 0 else 0.0
 
-        # Adjust GST proportionally for discount (matches JS discountFactor logic)
-        if gross_subtotal > 0:
-            discount_factor = net_subtotal / gross_subtotal
-            total_gst = service_gst_pre_discount * discount_factor
-        else:
-            total_gst = service_gst_pre_discount
+        # Products: 18% GST inclusive
+        product_taxable = inventory_subtotal * discount_factor
+        product_gst = product_taxable * product_gst_rate_pct / (100.0 + product_gst_rate_pct) if product_gst_rate_pct > 0 else 0.0
+
+        total_gst = service_gst + product_gst
 
         if is_interstate:
-            cgst_amount = 0
-            sgst_amount = 0
+            cgst_amount = 0.0
+            sgst_amount = 0.0
             igst_amount = total_gst
         else:
             cgst_amount = total_gst / 2
             sgst_amount = total_gst / 2
-            igst_amount = 0
+            igst_amount = 0.0
 
         tax_amount = total_gst
-
         additional_charges = float(request.form.get('additional_charges', 0))
         tips_amount = float(request.form.get('tips_amount', 0))
-
-        # Matches JS: grandTotal = taxableAmountAfterTax + totalGst + additionalCharges + tips
         total_amount = net_subtotal + total_gst + additional_charges + tips_amount
 
         # Update invoice
@@ -2745,16 +2752,16 @@ def update_integrated_invoice(invoice_id):
         invoice.cgst_amount = cgst_amount
         invoice.sgst_amount = sgst_amount
         invoice.igst_amount = igst_amount
-        invoice.cgst_rate = (cgst_rate * 100) if not is_interstate else 0
-        invoice.sgst_rate = (sgst_rate * 100) if not is_interstate else 0
-        invoice.igst_rate = (igst_rate * 100) if is_interstate else 0
+        invoice.cgst_rate = 0 if is_interstate else (service_gst_rate_pct / 2)
+        invoice.sgst_rate = 0 if is_interstate else (service_gst_rate_pct / 2)
+        invoice.igst_rate = service_gst_rate_pct if is_interstate else 0
         invoice.additional_charges = additional_charges
         invoice.tips_amount = tips_amount
         invoice.total_amount = total_amount
         invoice.amount_paid = total_amount
         invoice.balance_due = 0.0
 
-        # Persist tax breakdown so print routes can read correct values
+        # Persist full tax breakdown so print matches billing summary exactly
         tax_breakdown_update = {
             'cgst_rate': invoice.cgst_rate,
             'sgst_rate': invoice.sgst_rate,
@@ -2766,8 +2773,14 @@ def update_integrated_invoice(invoice_id):
             'additional_charges': additional_charges,
             'payment_terms': request.form.get('payment_terms', invoice.payment_terms or 'immediate'),
             'payment_method': invoice.payment_method,
-            'service_gst_rate': total_gst_rate * 100,
-            'product_gst_rate': total_gst_rate * 100,
+            'service_gst_rate': service_gst_rate_pct,
+            'product_gst_rate': product_gst_rate_pct,
+            'service_cgst_rate': service_gst_rate_pct / 2,
+            'service_sgst_rate': service_gst_rate_pct / 2,
+            'product_cgst_rate': product_gst_rate_pct / 2,
+            'product_sgst_rate': product_gst_rate_pct / 2,
+            'service_gst_amount': service_gst,
+            'product_gst_amount': product_gst,
         }
         invoice.tax_breakdown = json.dumps(tax_breakdown_update)
         
@@ -2861,6 +2874,7 @@ def update_integrated_invoice(invoice_id):
                         staff_name = staff.full_name
 
                 product_amount = item_data['unit_price'] * item_data['quantity']
+                prod_gst_amt = product_amount * discount_factor * product_gst_rate_pct / (100.0 + product_gst_rate_pct) if product_gst_rate_pct > 0 else 0.0
                 item = InvoiceItem(
                     invoice_id=invoice.id,
                     item_type='inventory',
@@ -2876,7 +2890,16 @@ def update_integrated_invoice(invoice_id):
                     final_amount=product_amount,
                     staff_revenue_price=product_amount,
                     staff_id=staff_id,
-                    staff_name=staff_name
+                    staff_name=staff_name,
+                    is_product=True,
+                    gst_percentage=product_gst_rate_pct,
+                    cgst_rate=0 if is_interstate else product_gst_rate_pct / 2,
+                    sgst_rate=0 if is_interstate else product_gst_rate_pct / 2,
+                    igst_rate=product_gst_rate_pct if is_interstate else 0,
+                    gst_amount=prod_gst_amt,
+                    cgst_amount=0 if is_interstate else prod_gst_amt / 2,
+                    sgst_amount=0 if is_interstate else prod_gst_amt / 2,
+                    igst_amount=prod_gst_amt if is_interstate else 0,
                 )
                 db.session.add(item)
 
