@@ -524,8 +524,16 @@
             {% endif %}
 
             <!-- GRAND TOTAL -->
+            {% set tips_amount = invoice.tips_amount or 0 %}
             <table class="items-table">
                 <tbody>
+                    {% if tips_amount > 0 %}
+                    <tr style="background-color: #fff8e1;">
+                        <td colspan="6"><strong>Tips</strong></td>
+                        <td class="price"></td>
+                        <td class="price"><strong>₹{{ "%.2f"|format(tips_amount) }}</strong></td>
+                    </tr>
+                    {% endif %}
                     <tr class="total-row">
                         <td colspan="6"><strong>GRAND TOTAL</strong></td>
                         <td class="price">
@@ -568,10 +576,9 @@
                 </div>
 
                 <div class="right-footer">
-                    {% set subtotal = invoice.total_amount -
-                    (tax_details.get('cgst_amount', 0) +
-                    tax_details.get('sgst_amount', 0) +
-                    tax_details.get('igst_amount', 0)) %}
+                    {% set tips_amt = invoice.tips_amount or 0 %}
+                    {% set total_tax = tax_details.get('cgst_amount', 0) + tax_details.get('sgst_amount', 0) + tax_details.get('igst_amount', 0) %}
+                    {% set subtotal = invoice.total_amount - total_tax - tips_amt %}
                     <div class="subtotal-section">
                         Sub Total (before GST): ₹{{ "%.2f"|format(subtotal) }}
                     </div>
@@ -618,6 +625,12 @@
                                 ₹{{ "%.2f"|format(tax_details.get('igst_amount',
                                 0)) }}
                             </td>
+                        </tr>
+                        {% endif %}
+                        {% if tips_amt > 0 %}
+                        <tr>
+                            <td class="label">Tips:</td>
+                            <td class="value">₹{{ "%.2f"|format(tips_amt) }}</td>
                         </tr>
                         {% endif %}
                         <tr class="total-row">
