@@ -227,6 +227,13 @@
                 }
             }
         </style>
+    <script>
+        window.addEventListener('load', function() {
+            if (window.location.hash === '#autoprint') {
+                setTimeout(function() { window.print(); }, 500);
+            }
+        });
+    </script>
     </head>
     <body>
         <div class="no-print" style="margin: 20px auto; max-width: 800px; display: flex; justify-content: space-between; padding: 0 15px;">

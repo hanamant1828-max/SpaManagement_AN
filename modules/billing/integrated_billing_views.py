@@ -2306,31 +2306,10 @@ def integrated_invoice_detail(invoice_id):
         # Fetch customer details
         customer = Customer.query.get(invoice.client_id)
 
-        # Get GST configuration from SystemSetting
+        # Get GST configuration from settings (same source as print route)
+        from modules.settings.settings_queries import get_gst_settings
         from models import SystemSetting
-
-        # Create a gst_config object from SystemSetting
-        class GSTConfig:
-            def __init__(self):
-                gstin = SystemSetting.query.filter_by(key='gstin_number').first()
-                business_name = SystemSetting.query.filter_by(key='gst_business_name').first()
-                business_addr = SystemSetting.query.filter_by(key='gst_business_address').first()
-                business_phone = SystemSetting.query.filter_by(key='gst_phone').first()
-                business_email = SystemSetting.query.filter_by(key='gst_email').first()
-                cgst = SystemSetting.query.filter_by(key='default_cgst').first()
-                sgst = SystemSetting.query.filter_by(key='default_sgst').first()
-                gst_enabled = SystemSetting.query.filter_by(key='gst_enabled').first()
-
-                self.gstin_number = gstin.value if gstin else ''
-                self.business_name = business_name.value if business_name else 'Your Business'
-                self.business_address = business_addr.value if business_addr else ''
-                self.business_phone = business_phone.value if business_phone else ''
-                self.business_email = business_email.value if business_email else ''
-                self.cgst_rate = float(cgst.value) if cgst else 9.0
-                self.sgst_rate = float(sgst.value) if sgst else 9.0
-                self.enabled = gst_enabled.value == 'true' if gst_enabled else False
-
-        gst_config = GSTConfig()
+        gst_config = get_gst_settings()
 
         # Get business logo
         business_logo_setting = SystemSetting.query.filter_by(key='business_logo').first()
