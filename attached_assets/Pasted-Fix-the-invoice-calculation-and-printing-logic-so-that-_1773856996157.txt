@@ -1,0 +1,142 @@
+Fix the invoice calculation and printing logic so that the Billing Summary (UI) and Printed Invoice (Preview / Save & Print) are always identical and GST is applied correctly.
+
+🔹 1. FIX GST CALCULATION (MAIN ISSUE)
+
+Currently, the system is applying 18% GST to both services and products, which is incorrect.
+
+Update logic as follows:
+
+Services → Apply 5% GST
+
+Products → Apply 18% GST
+
+Correct calculation flow:
+
+Calculate subtotal separately:
+
+Service subtotal
+
+Product subtotal
+
+Apply discount proportionally (or on total, but keep consistency)
+
+Compute taxable amount:
+
+taxable_amount = subtotal - discount
+
+Apply GST separately:
+
+service_gst = service_taxable * 5 / 100
+product_gst = product_taxable * 18 / 100
+total_gst = service_gst + product_gst
+
+Split GST into:
+
+CGST = total_gst / 2
+SGST = total_gst / 2
+🔹 2. FIX BILLING SUMMARY vs PRINT MISMATCH
+
+Problem:
+
+Billing summary shows correct values (5% + 18%)
+
+Print preview recalculates and applies wrong GST (18% for all)
+
+Fix:
+
+DO NOT recalculate values during print
+
+Use the same stored invoice data used in billing summary
+
+✔ Ensure:
+
+print_invoice_data === billing_summary_data
+
+✔ Store these values when invoice is created/updated:
+
+service_subtotal
+
+product_subtotal
+
+discount
+
+taxable_amount
+
+service_gst
+
+product_gst
+
+cgst
+
+sgst
+
+total
+
+✔ In print/preview:
+
+Only DISPLAY values
+
+Do NOT recompute GST again
+
+🔹 3. FIX EDIT → PREVIEW ISSUE
+
+Problem:
+
+After editing invoice, preview shows different calculation
+
+Fix:
+
+On "Edit Invoice":
+
+Load previously saved GST breakdown (not recalculate blindly)
+
+On "Save & Print":
+
+Recalculate ONCE
+
+Save values
+
+Use same saved values for preview
+
+🔹 4. ENSURE CONSISTENT FORMULA
+
+Make sure BOTH UI and Print use the same logic source:
+
+Create a single function:
+
+calculateInvoiceTotals(invoiceData)
+
+Use this function in:
+
+Billing summary UI
+
+Save invoice
+
+Print preview
+
+🔹 5. VALIDATION CHECK
+
+After fix, ensure:
+
+✔ Services ₹65 → GST = 5%
+✔ Products ₹50 → GST = 18%
+✔ Discount applied correctly
+✔ Taxable amount = ₹103.50
+✔ GST split into CGST + SGST
+✔ Final total matches EXACTLY in:
+
+Billing Summary
+
+Preview
+
+Printed Invoice
+
+🔹 EXPECTED RESULT
+
+First page (Billing Summary) = Second page (Invoice Print)
+
+No GST mismatch
+
+No recalculation differences
+
+Clean, consistent invoice
