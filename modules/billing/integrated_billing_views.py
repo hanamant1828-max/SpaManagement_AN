@@ -2787,8 +2787,8 @@ def update_integrated_invoice(invoice_id):
             'additional_charges': additional_charges,
             'payment_terms': request.form.get('payment_terms', invoice.payment_terms or 'immediate'),
             'payment_method': invoice.payment_method,
-            'service_gst_rate': gst_config.get('service_gst_rate', gst_config['cgst_rate'] + gst_config['sgst_rate']),
-            'product_gst_rate': gst_config.get('product_gst_rate', gst_config['cgst_rate'] + gst_config['sgst_rate']),
+            'service_gst_rate': total_gst_rate * 100,
+            'product_gst_rate': total_gst_rate * 100,
         }
         invoice.tax_breakdown = json.dumps(tax_breakdown_update)
         
