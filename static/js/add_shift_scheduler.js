@@ -780,6 +780,9 @@
                     updateDefaultBreakMinutes();
 
 
+                    // Re-evaluate generate button now that all fields are populated
+                    updateGenerateButton();
+
                     // Handle different modes
                     if (action === 'view') {
                         // Disable all day configuration inputs
