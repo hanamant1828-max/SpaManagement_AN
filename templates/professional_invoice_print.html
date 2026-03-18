@@ -334,15 +334,18 @@
             invoice_items|rejectattr('item_type', 'equalto', 'product')|list %}
             {% if tax_details.get('is_interstate') %}
             {% set gst_rate = tax_details.get('igst_rate', invoice.igst_rate or 0) %}
+            {% set product_gst_rate = tax_details.get('igst_rate', invoice.igst_rate or 0) %}
+            {% set service_gst_rate = tax_details.get('igst_rate', invoice.igst_rate or 0) %}
             {% else %}
             {% set gst_rate = tax_details.get('cgst_rate', invoice.cgst_rate or 0) + tax_details.get('sgst_rate', invoice.sgst_rate or 0) %}
+            {% set product_gst_rate = tax_details.get('product_gst_rate', gst_rate) %}
+            {% set service_gst_rate = tax_details.get('service_gst_rate', gst_rate) %}
             {% endif %}
 
             <!-- PRODUCTS SECTION (GST Inclusive) -->
             {% if products|length > 0 %}
             <div class="section-header">
-                PRODUCTS (MRP includes GST - base price calculated by
-                subtracting GST)
+                PRODUCTS (MRP includes GST @ {{ "%.0f"|format(product_gst_rate) }}% — base price calculated by subtracting GST)
             </div>
             <table class="items-table">
                 <thead>
@@ -361,8 +364,8 @@
                     {% set product_subtotal = namespace(base=0, gst=0, total=0)
                     %} {% for item in products %} {% set mrp_price =
                     item.selling_price or item.unit_price %} {# For PRODUCTS:
-                    GST is INCLUSIVE in MRP - subtract GST to get base price #}
-                    {% set base_price = mrp_price / (1 + gst_rate/100) %} {% set
+                    GST is INCLUSIVE in MRP - subtract using product_gst_rate #}
+                    {% set base_price = mrp_price / (1 + product_gst_rate/100) if product_gst_rate > 0 else mrp_price %} {% set
                     gst_per_unit = mrp_price - base_price %} {% set
                     total_base_amount = base_price * item.quantity %} {% set
                     total_gst_amount = gst_per_unit * item.quantity %} {% set
@@ -395,7 +398,7 @@
                             "%.0f"|format(tax_details.get('igst_rate', 0))
                             }}%<br />
                             ₹{{ "%.2f"|format(total_gst_amount) }} {% else %}
-                            GST {{ "%.0f"|format(gst_rate) }}%<br />
+                            GST {{ "%.0f"|format(product_gst_rate) }}%<br />
                             ₹{{ "%.2f"|format(total_gst_amount) }} {% endif %}
                         </td>
                         <td class="price">
@@ -434,8 +437,7 @@
             <!-- SERVICES SECTION (GST Inclusive) -->
             {% if services|length > 0 %}
             <div class="section-header">
-                SERVICES (MRP includes GST - base price calculated by
-                subtracting GST)
+                SERVICES (MRP includes GST @ {{ "%.0f"|format(service_gst_rate) }}% — base price calculated by subtracting GST)
             </div>
             <table class="items-table">
                 <thead>
@@ -452,11 +454,11 @@
                 </thead>
                 <tbody>
                     {% set service_subtotal = namespace(base=0, gst=0, total=0)
-                    %} {% for item in services %} {% set mrp_price =
-                    item.selling_price or item.unit_price %} {# For SERVICES:
-                    GST is INCLUSIVE - subtract GST to get base price #} {% set
-                    base_price = mrp_price / (1 + gst_rate/100) %} {% set
-                    gst_per_unit = mrp_price - base_price %} {% set
+                    %} {% for item in services %}
+                    {% set mrp_price = item.selling_price or item.unit_price %}
+                    {% set item_gst_rate = item.gst_percentage if item.gst_percentage else service_gst_rate %}
+                    {% set base_price = mrp_price / (1 + item_gst_rate/100) if item_gst_rate > 0 else mrp_price %}
+                    {% set gst_per_unit = mrp_price - base_price %} {% set
                     total_base_amount = base_price * item.quantity %} {% set
                     total_gst_amount = gst_per_unit * item.quantity %} {% set
                     total_amount = mrp_price * item.quantity %} {%
@@ -488,7 +490,7 @@
                             "%.0f"|format(tax_details.get('igst_rate', 0))
                             }}%<br />
                             ₹{{ "%.2f"|format(total_gst_amount) }} {% else %}
-                            GST {{ "%.0f"|format(gst_rate) }}%<br />
+                            GST {{ "%.0f"|format(item_gst_rate) }}%<br />
                             ₹{{ "%.2f"|format(total_gst_amount) }} {% endif %}
                         </td>
                         <td class="price">

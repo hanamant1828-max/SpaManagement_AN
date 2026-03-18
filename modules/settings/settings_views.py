@@ -239,6 +239,19 @@ def api_get_gst_configuration():
         gst_phone = SystemSetting.query.filter_by(key='gst_phone').first()
         gst_email = SystemSetting.query.filter_by(key='gst_email').first()
 
+        product_cgst = SystemSetting.query.filter_by(key='product_cgst_rate').first()
+        product_sgst = SystemSetting.query.filter_by(key='product_sgst_rate').first()
+        service_cgst = SystemSetting.query.filter_by(key='service_cgst_rate').first()
+        service_sgst = SystemSetting.query.filter_by(key='service_sgst_rate').first()
+
+        def_cgst = float(default_cgst.value) if default_cgst else 9.0
+        def_sgst = float(default_sgst.value) if default_sgst else 9.0
+
+        prod_cgst = float(product_cgst.value) if product_cgst and product_cgst.value != '' else def_cgst
+        prod_sgst = float(product_sgst.value) if product_sgst and product_sgst.value != '' else def_sgst
+        svc_cgst = float(service_cgst.value) if service_cgst and service_cgst.value != '' else def_cgst
+        svc_sgst = float(service_sgst.value) if service_sgst and service_sgst.value != '' else def_sgst
+
         return jsonify({
             'success': True,
             'configuration': {
@@ -249,9 +262,15 @@ def api_get_gst_configuration():
                 'email': gst_email.value if gst_email else '',
                 'state': gst_state.value if gst_state else '',
                 'gst_enabled': gst_enabled.value == 'true' if gst_enabled else False,
-                'default_cgst': float(default_cgst.value) if default_cgst else 9.0,
-                'default_sgst': float(default_sgst.value) if default_sgst else 9.0,
-                'default_igst': float(default_igst.value) if default_igst else 18.0
+                'default_cgst': def_cgst,
+                'default_sgst': def_sgst,
+                'default_igst': float(default_igst.value) if default_igst else 18.0,
+                'product_cgst_rate': prod_cgst,
+                'product_sgst_rate': prod_sgst,
+                'product_gst_rate': prod_cgst + prod_sgst,
+                'service_cgst_rate': svc_cgst,
+                'service_sgst_rate': svc_sgst,
+                'service_gst_rate': svc_cgst + svc_sgst,
             }
         })
     except Exception as e:
@@ -285,6 +304,10 @@ def api_save_gst_configuration():
         default_cgst = request.form.get('default_cgst', '9')
         default_sgst = request.form.get('default_sgst', '9')
         default_igst = request.form.get('default_igst', '18')
+        product_cgst_rate = request.form.get('product_cgst_rate', default_cgst)
+        product_sgst_rate = request.form.get('product_sgst_rate', default_sgst)
+        service_cgst_rate = request.form.get('service_cgst_rate', default_cgst)
+        service_sgst_rate = request.form.get('service_sgst_rate', default_sgst)
 
         # Update or create settings
         settings_to_update = {
@@ -297,7 +320,11 @@ def api_save_gst_configuration():
             'gst_enabled': 'true' if gst_enabled else 'false',
             'default_cgst': str(default_cgst),
             'default_sgst': str(default_sgst),
-            'default_igst': str(default_igst)
+            'default_igst': str(default_igst),
+            'product_cgst_rate': str(product_cgst_rate),
+            'product_sgst_rate': str(product_sgst_rate),
+            'service_cgst_rate': str(service_cgst_rate),
+            'service_sgst_rate': str(service_sgst_rate),
         }
 
         for setting_key, setting_value in settings_to_update.items():

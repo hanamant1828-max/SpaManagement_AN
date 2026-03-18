@@ -1261,10 +1261,26 @@ textarea.form-control {
                             <span class="summary-value" id="taxableAmount">₹0.00</span>
                         </div>
 
+                        <div class="summary-row tax-row" id="serviceGstRow" style="display:none;">
+                            <span class="summary-label" id="serviceGstLabel">
+                                <i class="fas fa-spa"></i>
+                                Service GST
+                            </span>
+                            <span class="summary-value" id="serviceGstAmount">₹0.00</span>
+                        </div>
+
+                        <div class="summary-row tax-row" id="productGstRow" style="display:none;">
+                            <span class="summary-label" id="productGstLabel">
+                                <i class="fas fa-box"></i>
+                                Product GST
+                            </span>
+                            <span class="summary-value" id="productGstAmount">₹0.00</span>
+                        </div>
+
                         <div class="summary-row tax-row">
                             <span class="summary-label">
                                 <i class="fas fa-percentage"></i>
-                                CGST (9%)
+                                CGST
                             </span>
                             <span class="summary-value" id="cgstAmount">₹0.00</span>
                         </div>
@@ -1272,7 +1288,7 @@ textarea.form-control {
                         <div class="summary-row tax-row">
                             <span class="summary-label">
                                 <i class="fas fa-percentage"></i>
-                                SGST (9%)
+                                SGST
                             </span>
                             <span class="summary-value" id="sgstAmount">₹0.00</span>
                         </div>
@@ -1355,6 +1371,12 @@ let GSTSettings = {
     cgst_rate: 9,
     sgst_rate: 9,
     igst_rate: 18,
+    product_cgst_rate: 9,
+    product_sgst_rate: 9,
+    product_gst_rate: 18,
+    service_cgst_rate: 9,
+    service_sgst_rate: 9,
+    service_gst_rate: 18,
     gstin_number: '',
     business_name: '',
     business_address: '',
@@ -1656,24 +1678,35 @@ async function loadGSTSettings() {
         const data = await response.json();
 
         if (data.success && data.configuration) {
+            const cfg = data.configuration;
+            const defCgst = cfg.default_cgst || 9;
+            const defSgst = cfg.default_sgst || 9;
             GSTSettings = {
-                cgst_rate: data.configuration.default_cgst || 9,
-                sgst_rate: data.configuration.default_sgst || 9,
-                igst_rate: data.configuration.default_igst || 18,
-                gstin_number: data.configuration.gstin_number || '',
-                business_name: data.configuration.business_name || '',
-                business_address: data.configuration.address || '',
-                business_phone: data.configuration.phone || '',  // API returns 'phone' key
-                business_email: data.configuration.email || '',  // API returns 'email' key
-                state: data.configuration.state || '',
-                enabled: data.configuration.gst_enabled || false
+                cgst_rate: defCgst,
+                sgst_rate: defSgst,
+                igst_rate: cfg.default_igst || 18,
+                product_cgst_rate: cfg.product_cgst_rate != null ? cfg.product_cgst_rate : defCgst,
+                product_sgst_rate: cfg.product_sgst_rate != null ? cfg.product_sgst_rate : defSgst,
+                product_gst_rate: cfg.product_gst_rate != null ? cfg.product_gst_rate : (defCgst + defSgst),
+                service_cgst_rate: cfg.service_cgst_rate != null ? cfg.service_cgst_rate : defCgst,
+                service_sgst_rate: cfg.service_sgst_rate != null ? cfg.service_sgst_rate : defSgst,
+                service_gst_rate: cfg.service_gst_rate != null ? cfg.service_gst_rate : (defCgst + defSgst),
+                gstin_number: cfg.gstin_number || '',
+                business_name: cfg.business_name || '',
+                business_address: cfg.address || '',
+                business_phone: cfg.phone || '',
+                business_email: cfg.email || '',
+                state: cfg.state || '',
+                enabled: cfg.gst_enabled || false
             };
 
             console.log('✅ GST Settings loaded:', GSTSettings);
 
-            // Update display labels with dynamic percentages
-            document.querySelector('.summary-row:has(#cgstAmount) .summary-label').textContent = `CGST (${GSTSettings.cgst_rate}%):`;
-            document.querySelector('.summary-row:has(#sgstAmount) .summary-label').textContent = `SGST (${GSTSettings.sgst_rate}%):`;
+            // Update display labels with separate product/service GST rates
+            const cgstRow = document.querySelector('.summary-row:has(#cgstAmount) .summary-label');
+            const sgstRow = document.querySelector('.summary-row:has(#sgstAmount) .summary-label');
+            if (cgstRow) cgstRow.textContent = `CGST:`;
+            if (sgstRow) sgstRow.textContent = `SGST:`;
 
             // Trigger recalculation with new rates
             updateCalculations();
@@ -3179,31 +3212,45 @@ function resetCustomerPackages() {
         // --- Calculate Taxable Amount ---
         const taxableAmountAfterTax = Math.max(0, taxableAmountBeforeDiscount - discountAmount);
 
-        // --- Calculate GST (Services INCLUSIVE, Products NO GST - MRP is final) ---
-        // Use dynamic GST rates from database configuration
-        const gstRate = (GSTSettings.cgst_rate + GSTSettings.sgst_rate) / 100; // Total GST rate
+        // --- Calculate GST (Services INCLUSIVE, Products INCLUSIVE with separate rate) ---
+        // Use per-type GST rates from database configuration
+        const serviceGstRate = GSTSettings.service_gst_rate / 100;
+        const productGstRate = GSTSettings.product_gst_rate / 100;
 
-        // For services: GST is INCLUSIVE (extract from price)
-        const serviceBase = servicesSubtotal / (1 + gstRate);
-        const serviceGst = servicesSubtotal - serviceBase;
+        // For services: GST is INCLUSIVE (extract from price using service GST rate)
+        const serviceGst = serviceGstRate > 0 ? servicesSubtotal - servicesSubtotal / (1 + serviceGstRate) : 0;
 
-        // For products: NO GST (MRP is final price, already includes all taxes)
-        const productBase = productsSubtotal;
-        const productGst = 0;
+        // For products: GST is INCLUSIVE in MRP (extract using product GST rate)
+        const productGst = productGstRate > 0 ? productsSubtotal - productsSubtotal / (1 + productGstRate) : 0;
 
-        // Total GST before discount adjustment (only from services)
+        // Total GST before discount adjustment
         let totalGst = serviceGst + productGst;
 
         // Adjust GST proportionally if discount is applied
+        let serviceGstAdj = serviceGst;
+        let productGstAdj = productGst;
         if (discountAmount > 0 && taxableAmountBeforeDiscount > 0) {
             const discountFactor = taxableAmountAfterTax / taxableAmountBeforeDiscount;
             totalGst = totalGst * discountFactor;
+            serviceGstAdj = serviceGst * discountFactor;
+            productGstAdj = productGst * discountFactor;
         }
 
-        // Split into CGST and SGST based on configured rates
-        const totalGstRate = GSTSettings.cgst_rate + GSTSettings.sgst_rate;
-        const cgstAmount = totalGstRate > 0 ? totalGst * (GSTSettings.cgst_rate / totalGstRate) : 0;
-        const sgstAmount = totalGstRate > 0 ? totalGst * (GSTSettings.sgst_rate / totalGstRate) : 0;
+        // Split CGST / SGST based on per-type rates
+        const svcCgstRate = GSTSettings.service_cgst_rate;
+        const svcSgstRate = GSTSettings.service_sgst_rate;
+        const svcTotalGstRate = svcCgstRate + svcSgstRate;
+        const serviceCgst = svcTotalGstRate > 0 ? serviceGstAdj * (svcCgstRate / svcTotalGstRate) : 0;
+        const serviceSgst = svcTotalGstRate > 0 ? serviceGstAdj * (svcSgstRate / svcTotalGstRate) : 0;
+
+        const prodCgstRate = GSTSettings.product_cgst_rate;
+        const prodSgstRate = GSTSettings.product_sgst_rate;
+        const prodTotalGstRate = prodCgstRate + prodSgstRate;
+        const productCgst = prodTotalGstRate > 0 ? productGstAdj * (prodCgstRate / prodTotalGstRate) : 0;
+        const productSgst = prodTotalGstRate > 0 ? productGstAdj * (prodSgstRate / prodTotalGstRate) : 0;
+
+        const cgstAmount = serviceCgst + productCgst;
+        const sgstAmount = serviceSgst + productSgst;
 
         // --- Additional Charges & Tips ---
         const additionalCharges = parseFloat(document.querySelector('input[name="additional_charges"]')?.value) || 0;
@@ -3224,6 +3271,24 @@ function resetCustomerPackages() {
         document.getElementById('additionalCharges').textContent = `₹${additionalCharges.toFixed(2)}`;
         document.getElementById('tipsDisplay').textContent = `₹${tips.toFixed(2)}`;
         document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+
+        // Show/update separate service and product GST breakdown rows
+        const svcGstEl = document.getElementById('serviceGstAmount');
+        const prodGstEl = document.getElementById('productGstAmount');
+        const svcGstRow = document.getElementById('serviceGstRow');
+        const prodGstRow = document.getElementById('productGstRow');
+        const svcGstLabel = document.getElementById('serviceGstLabel');
+        const prodGstLabel = document.getElementById('productGstLabel');
+        if (svcGstEl && svcGstRow) {
+            svcGstEl.textContent = `₹${serviceGstAdj.toFixed(2)}`;
+            svcGstRow.style.display = servicesSubtotal > 0 ? '' : 'none';
+            if (svcGstLabel) svcGstLabel.innerHTML = `<i class="fas fa-spa"></i> Service GST (${GSTSettings.service_gst_rate}%)`;
+        }
+        if (prodGstEl && prodGstRow) {
+            prodGstEl.textContent = `₹${productGstAdj.toFixed(2)}`;
+            prodGstRow.style.display = productsSubtotal > 0 ? '' : 'none';
+            if (prodGstLabel) prodGstLabel.innerHTML = `<i class="fas fa-box"></i> Product GST (${GSTSettings.product_gst_rate}%)`;
+        }
 
         console.log('📊 Totals Updated:', {
             servicesSubtotal: servicesSubtotal.toFixed(2),

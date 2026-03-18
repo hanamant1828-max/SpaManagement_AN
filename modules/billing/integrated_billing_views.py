@@ -1309,37 +1309,41 @@ def create_professional_invoice():
         from modules.settings.settings_queries import get_gst_settings
         gst_config = get_gst_settings()
 
-        # Use form values if provided, otherwise use database defaults
+        # Separate GST rates for products and services
+        service_cgst_rate = gst_config.get('service_cgst_rate', gst_config['cgst_rate']) / 100
+        service_sgst_rate = gst_config.get('service_sgst_rate', gst_config['sgst_rate']) / 100
+        product_cgst_rate = gst_config.get('product_cgst_rate', gst_config['cgst_rate']) / 100
+        product_sgst_rate = gst_config.get('product_sgst_rate', gst_config['sgst_rate']) / 100
+
+        # IGST for interstate (uses service rate as combined; products would also use their combined rate)
         cgst_rate = float(request.form.get('cgst_rate', gst_config['cgst_rate'])) / 100
         sgst_rate = float(request.form.get('sgst_rate', gst_config['sgst_rate'])) / 100
         igst_rate = float(request.form.get('igst_rate', gst_config['igst_rate'])) / 100
         is_interstate = request.form.get('is_interstate') == 'on'
-        total_gst_rate = igst_rate if is_interstate else (cgst_rate + sgst_rate)
-
-        # GST CALCULATION RULES FOR BILLING:
-        # 1. SERVICES: GST is calculated per item based on service settings
-        # 2. PRODUCTS: MRP is final price (GST usually included)
 
         total_tax = 0
         cgst_total = 0
         sgst_total = 0
         igst_total = 0
 
-        # Process services and calculate their individual taxes
+        # Process services: use per-service gst_percentage if set, else fall back to configured service_gst_rate
         for s_idx, service_data in enumerate(services_data):
             service = Service.query.get(service_data['service_id'])
             if service:
                 item_total = service.price * service_data['quantity']
-                item_gst_rate = (service.gst_percentage or 18.0) / 100
-                
-                # Extract GST from inclusive price
-                item_base = item_total / (1 + item_gst_rate)
+
+                if service.gst_percentage is not None:
+                    item_gst_rate = service.gst_percentage / 100
+                else:
+                    item_gst_rate = service_cgst_rate + service_sgst_rate
+
+                item_base = item_total / (1 + item_gst_rate) if item_gst_rate > 0 else item_total
                 item_tax = item_total - item_base
-                
+
                 service_data['base_amount'] = item_base
                 service_data['tax_amount'] = item_tax
-                service_data['gst_percentage'] = service.gst_percentage or 18.0
-                
+                service_data['gst_percentage'] = item_gst_rate * 100
+
                 total_tax += item_tax
                 if is_interstate:
                     service_data['igst_amount'] = item_tax
@@ -1347,14 +1351,41 @@ def create_professional_invoice():
                     service_data['sgst_amount'] = 0
                     igst_total += item_tax
                 else:
-                    service_data['cgst_amount'] = item_tax / 2
-                    service_data['sgst_amount'] = item_tax / 2
+                    s_cgst = service_cgst_rate / (service_cgst_rate + service_sgst_rate) if (service_cgst_rate + service_sgst_rate) > 0 else 0.5
+                    s_sgst = 1 - s_cgst
+                    service_data['cgst_amount'] = item_tax * s_cgst
+                    service_data['sgst_amount'] = item_tax * s_sgst
                     service_data['igst_amount'] = 0
-                    cgst_total += item_tax / 2
-                    sgst_total += item_tax / 2
+                    cgst_total += item_tax * s_cgst
+                    sgst_total += item_tax * s_sgst
 
-        # For PRODUCTS: MRP is final price, no GST extracted (matches JS logic)
-        inventory_gst_amount = 0
+        # Process products: extract GST from MRP using product_gst_rate (inclusive)
+        product_gst_total = 0
+        product_cgst_total = 0
+        product_sgst_total = 0
+        product_igst_total = 0
+        for item in inventory_data:
+            item_total = item['unit_price'] * item['quantity']
+            p_gst_rate = product_cgst_rate + product_sgst_rate
+            p_base = item_total / (1 + p_gst_rate) if p_gst_rate > 0 else item_total
+            p_tax = item_total - p_base
+            item['base_amount'] = p_base
+            item['tax_amount'] = p_tax
+            item['product_gst_rate'] = p_gst_rate * 100
+            product_gst_total += p_tax
+            if is_interstate:
+                product_igst_total += p_tax
+            else:
+                p_cgst_frac = product_cgst_rate / p_gst_rate if p_gst_rate > 0 else 0.5
+                product_cgst_total += p_tax * p_cgst_frac
+                product_sgst_total += p_tax * (1 - p_cgst_frac)
+
+        total_tax += product_gst_total
+        cgst_total += product_cgst_total
+        sgst_total += product_sgst_total
+        igst_total += product_igst_total
+
+        inventory_gst_amount = product_gst_total
 
         # Calculate discount on gross_subtotal (full MRP totals — matches JS updateCalculations)
         discount_type = request.form.get('discount_type', 'amount')
@@ -1498,7 +1529,7 @@ def create_professional_invoice():
                 invoice.payment_method = payment_method
                 payment_methods_dict = {payment_method: total_amount}
 
-            # Tax breakdown for legacy support
+            # Tax breakdown for legacy support and invoice printing
             tax_breakdown = {
                 'cgst_rate': cgst_rate * 100,
                 'sgst_rate': sgst_rate * 100,
@@ -1510,7 +1541,13 @@ def create_professional_invoice():
                 'additional_charges': additional_charges,
                 'payment_terms': payment_terms,
                 'payment_method': payment_method,
-                'payment_methods_breakdown': payment_methods_dict if payment_method == 'mixed' else None
+                'payment_methods_breakdown': payment_methods_dict if payment_method == 'mixed' else None,
+                'service_cgst_rate': gst_config.get('service_cgst_rate', gst_config['cgst_rate']),
+                'service_sgst_rate': gst_config.get('service_sgst_rate', gst_config['sgst_rate']),
+                'service_gst_rate': gst_config.get('service_gst_rate', gst_config['cgst_rate'] + gst_config['sgst_rate']),
+                'product_cgst_rate': gst_config.get('product_cgst_rate', gst_config['cgst_rate']),
+                'product_sgst_rate': gst_config.get('product_sgst_rate', gst_config['sgst_rate']),
+                'product_gst_rate': gst_config.get('product_gst_rate', gst_config['cgst_rate'] + gst_config['sgst_rate']),
             }
 
             invoice.payment_methods = json.dumps(payment_methods_dict)

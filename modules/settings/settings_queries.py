@@ -105,23 +105,41 @@ def update_business_settings(settings_data):
 def get_gst_settings():
     """Get GST configuration settings from database"""
     try:
-        # Fetch all GST-related settings using correct database keys
+        default_cgst = float(get_setting_by_key('default_cgst') or 9)
+        default_sgst = float(get_setting_by_key('default_sgst') or 9)
+        default_igst = float(get_setting_by_key('default_igst') or 18)
+
+        product_cgst_raw = get_setting_by_key('product_cgst_rate')
+        product_sgst_raw = get_setting_by_key('product_sgst_rate')
+        service_cgst_raw = get_setting_by_key('service_cgst_rate')
+        service_sgst_raw = get_setting_by_key('service_sgst_rate')
+
+        product_cgst = float(product_cgst_raw) if product_cgst_raw is not None and product_cgst_raw != '' else default_cgst
+        product_sgst = float(product_sgst_raw) if product_sgst_raw is not None and product_sgst_raw != '' else default_sgst
+        service_cgst = float(service_cgst_raw) if service_cgst_raw is not None and service_cgst_raw != '' else default_cgst
+        service_sgst = float(service_sgst_raw) if service_sgst_raw is not None and service_sgst_raw != '' else default_sgst
+
         gst_settings = {
             'enabled': get_setting_by_key('gst_enabled') == 'True',
             'gstin_number': get_setting_by_key('gstin_number') or '',
             'business_name': get_setting_by_key('gst_business_name') or '',
             'business_address': get_setting_by_key('gst_business_address') or '',
-            'business_phone': get_setting_by_key('gst_phone') or '',  # Fixed: was gst_business_phone
-            'business_email': get_setting_by_key('gst_email') or '',  # Fixed: was gst_business_email
+            'business_phone': get_setting_by_key('gst_phone') or '',
+            'business_email': get_setting_by_key('gst_email') or '',
             'state': get_setting_by_key('gst_state') or '',
-            'cgst_rate': float(get_setting_by_key('default_cgst') or 9),
-            'sgst_rate': float(get_setting_by_key('default_sgst') or 9),
+            'cgst_rate': default_cgst,
+            'sgst_rate': default_sgst,
             'igst_rate': float(get_setting_by_key('default_igst') or 18),
+            'product_cgst_rate': product_cgst,
+            'product_sgst_rate': product_sgst,
+            'product_gst_rate': product_cgst + product_sgst,
+            'service_cgst_rate': service_cgst,
+            'service_sgst_rate': service_sgst,
+            'service_gst_rate': service_cgst + service_sgst,
         }
         return gst_settings
     except Exception as e:
         print(f"Error getting GST settings: {e}")
-        # Return default values if there's an error
         return {
             'enabled': False,
             'gstin_number': '',
@@ -133,4 +151,10 @@ def get_gst_settings():
             'cgst_rate': 9.0,
             'sgst_rate': 9.0,
             'igst_rate': 18.0,
+            'product_cgst_rate': 9.0,
+            'product_sgst_rate': 9.0,
+            'product_gst_rate': 18.0,
+            'service_cgst_rate': 9.0,
+            'service_sgst_rate': 9.0,
+            'service_gst_rate': 18.0,
         }
