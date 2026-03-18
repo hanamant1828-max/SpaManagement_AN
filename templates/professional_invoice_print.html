@@ -528,8 +528,16 @@
 
             <!-- GRAND TOTAL -->
             {% set tips_amount = invoice.tips_amount or 0 %}
+            {% set additional_charges = invoice.additional_charges or tax_details.get('additional_charges', 0) or 0 %}
             <table class="items-table">
                 <tbody>
+                    {% if additional_charges > 0 %}
+                    <tr style="background-color: #e8f5e9;">
+                        <td colspan="6"><strong>Additional Charges</strong></td>
+                        <td class="price"></td>
+                        <td class="price"><strong>₹{{ "%.2f"|format(additional_charges) }}</strong></td>
+                    </tr>
+                    {% endif %}
                     {% if tips_amount > 0 %}
                     <tr style="background-color: #fff8e1;">
                         <td colspan="6"><strong>Tips</strong></td>
@@ -625,6 +633,13 @@
                             <td class="value">
                                 ₹{{ "%.2f"|format(tax_details.get('igst_amount', 0)) }}
                             </td>
+                        </tr>
+                        {% endif %}
+                        {% set additional_charges_amt = invoice.additional_charges or tax_details.get('additional_charges', 0) or 0 %}
+                        {% if additional_charges_amt > 0 %}
+                        <tr>
+                            <td class="label">Additional Charges:</td>
+                            <td class="value">₹{{ "%.2f"|format(additional_charges_amt) }}</td>
                         </tr>
                         {% endif %}
                         {% if tips_amt > 0 %}
