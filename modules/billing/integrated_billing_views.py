@@ -1326,16 +1326,13 @@ def create_professional_invoice():
         sgst_total = 0
         igst_total = 0
 
-        # Process services: use per-service gst_percentage if set, else fall back to configured service_gst_rate
+        # Process services: always use configured service_gst_rate (ignoring per-service override)
         for s_idx, service_data in enumerate(services_data):
             service = Service.query.get(service_data['service_id'])
             if service:
                 item_total = service.price * service_data['quantity']
 
-                if service.gst_percentage is not None:
-                    item_gst_rate = service.gst_percentage / 100
-                else:
-                    item_gst_rate = service_cgst_rate + service_sgst_rate
+                item_gst_rate = service_cgst_rate + service_sgst_rate
 
                 item_base = item_total / (1 + item_gst_rate) if item_gst_rate > 0 else item_total
                 item_tax = item_total - item_base
@@ -2790,6 +2787,8 @@ def update_integrated_invoice(invoice_id):
             'additional_charges': additional_charges,
             'payment_terms': request.form.get('payment_terms', invoice.payment_terms or 'immediate'),
             'payment_method': invoice.payment_method,
+            'service_gst_rate': gst_config.get('service_gst_rate', gst_config['cgst_rate'] + gst_config['sgst_rate']),
+            'product_gst_rate': gst_config.get('product_gst_rate', gst_config['cgst_rate'] + gst_config['sgst_rate']),
         }
         invoice.tax_breakdown = json.dumps(tax_breakdown_update)
         

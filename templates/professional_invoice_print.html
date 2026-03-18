@@ -456,7 +456,7 @@
                     {% set service_subtotal = namespace(base=0, gst=0, total=0)
                     %} {% for item in services %}
                     {% set mrp_price = item.selling_price or item.unit_price %}
-                    {% set item_gst_rate = item.gst_percentage if item.gst_percentage else service_gst_rate %}
+                    {% set item_gst_rate = service_gst_rate %}
                     {% set base_price = mrp_price / (1 + item_gst_rate/100) if item_gst_rate > 0 else mrp_price %}
                     {% set gst_per_unit = mrp_price - base_price %} {% set
                     total_base_amount = base_price * item.quantity %} {% set
