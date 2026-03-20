@@ -4728,13 +4728,15 @@ function resetCustomerPackages() {
         }
     });
 
-    // Collect totals
-    const servicesSubtotal = parseFloat(document.getElementById('servicesSubtotal')?.textContent.replace(/[₹,]/g, '') || 0);
-    const productsSubtotal = parseFloat(document.getElementById('productsSubtotal')?.textContent.replace(/[₹,]/g, '') || 0);
-    const packageDeductions = parseFloat(document.getElementById('packageDeductionsAmount')?.textContent.replace(/[₹,]/g, '') || 0);
-    const discountAmount = parseFloat(document.getElementById('discountAmount')?.textContent.replace(/[₹,]/g, '') || 0);
-    const additionalCharges = parseFloat(document.getElementById('additionalCharges')?.value || 0);
-    const tips = parseFloat(document.getElementById('tips')?.value || 0);
+    // Collect totals — use textContent for all span-based display values
+    const servicesSubtotal = parseFloat(document.getElementById('servicesSubtotal')?.textContent.replace(/[₹,\-]/g, '') || 0);
+    const productsSubtotal = parseFloat(document.getElementById('productsSubtotal')?.textContent.replace(/[₹,\-]/g, '') || 0);
+    const packageDeductions = parseFloat(document.getElementById('packageDeductionsAmount')?.textContent.replace(/[₹,\-]/g, '') || 0);
+    // discountAmount span may show "-₹52.20" — take absolute value
+    const discountAmount = Math.abs(parseFloat(document.getElementById('discountAmount')?.textContent.replace(/[₹,]/g, '') || 0));
+    // additionalCharges and tips are <span> elements — use textContent, not .value
+    const additionalCharges = parseFloat(document.getElementById('additionalCharges')?.textContent.replace(/[₹,\-]/g, '') || 0);
+    const tips = parseFloat(document.getElementById('tipsDisplay')?.textContent.replace(/[₹,\-]/g, '') || 0);
 
     // Prepare JSON payload
     const previewData = {
