@@ -73,16 +73,16 @@ def manage_users():
 def create_user():
     if request.method == 'POST':
         try:
-            username = request.form.get('username')
-            email = request.form.get('email')
+            username = request.form.get('username', '').strip()
+            email = request.form.get('email', '').strip() or None
             password = request.form.get('password')
-            first_name = request.form.get('first_name')
-            last_name = request.form.get('last_name')
+            first_name = request.form.get('first_name', '').strip()
+            last_name = request.form.get('last_name', '').strip()
             role_id = request.form.get('role_id')
             role = request.form.get('role', 'staff')
-            phone = request.form.get('phone')
+            phone = request.form.get('phone', '').strip() or None
             department_id = request.form.get('department_id')
-            employee_id = request.form.get('employee_id')
+            employee_id = request.form.get('employee_id', '').strip() or None
             
             if User.query.filter_by(username=username).first():
                 flash('Username already exists', 'danger')
@@ -90,7 +90,7 @@ def create_user():
             
             user = User(
                 username=username,
-                email=email or None,
+                email=email,
                 first_name=first_name,
                 last_name=last_name,
                 role_id=int(role_id) if role_id else None,
