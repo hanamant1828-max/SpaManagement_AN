@@ -558,6 +558,8 @@ $(document).ready(function() {
             : '/shift-scheduler/api/out-of-office';
         const method = editingId ? 'PUT' : 'POST';
 
+        const submitBtn = document.querySelector('#outOfOfficeForm button[type="submit"]');
+
         $.ajax({
             url: url,
             method: method,
@@ -579,6 +581,13 @@ $(document).ready(function() {
                     ? xhr.responseJSON.error 
                     : 'An error occurred while saving';
                 showError(error);
+            },
+            complete: function() {
+                if (submitBtn && submitBtn.dataset.originalText) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = submitBtn.dataset.originalText;
+                    delete submitBtn.dataset.originalText;
+                }
             }
         });
     }
