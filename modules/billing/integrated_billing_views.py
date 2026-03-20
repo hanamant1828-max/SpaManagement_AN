@@ -1316,9 +1316,9 @@ def create_professional_invoice():
         product_sgst_rate = gst_config.get('product_sgst_rate', gst_config['sgst_rate']) / 100
 
         # IGST for interstate (uses service rate as combined; products would also use their combined rate)
-        cgst_rate = float(request.form.get('cgst_rate', gst_config['cgst_rate'])) / 100
-        sgst_rate = float(request.form.get('sgst_rate', gst_config['sgst_rate'])) / 100
-        igst_rate = float(request.form.get('igst_rate', gst_config['igst_rate'])) / 100
+        cgst_rate = float(request.form.get('cgst_rate') or gst_config['cgst_rate']) / 100
+        sgst_rate = float(request.form.get('sgst_rate') or gst_config['sgst_rate']) / 100
+        igst_rate = float(request.form.get('igst_rate') or gst_config['igst_rate']) / 100
         is_interstate = request.form.get('is_interstate') == 'on'
 
         total_tax = 0
@@ -1386,7 +1386,7 @@ def create_professional_invoice():
 
         # Calculate discount on gross_subtotal (full MRP totals — matches JS updateCalculations)
         discount_type = request.form.get('discount_type', 'amount')
-        discount_value = float(request.form.get('discount_value', 0))
+        discount_value = float(request.form.get('discount_value') or 0)
         if discount_type == 'percentage':
             discount_amount = (gross_subtotal * discount_value) / 100
         else:
@@ -1415,8 +1415,8 @@ def create_professional_invoice():
         igst_amount = igst_total
 
         net_subtotal = taxable_amount
-        additional_charges = float(request.form.get('additional_charges', 0))
-        tips_amount = float(request.form.get('tips_amount', 0))
+        additional_charges = float(request.form.get('additional_charges') or 0)
+        tips_amount = float(request.form.get('tips_amount') or 0)
 
         # Final total: taxable (MRP-after-discount) + extracted GST + charges + tips
         # Matches JS: grandTotal = taxableAmountAfterTax + totalGst + additionalCharges + tips
@@ -1565,7 +1565,7 @@ def create_professional_invoice():
 
             # Create payment record if invoice is paid
             if invoice.payment_status == 'paid':
-                payment_amount = float(request.form.get('payment_amount', invoice.total_amount))
+                payment_amount = float(request.form.get('payment_amount') or invoice.total_amount)
                 payment_method = request.form.get('payment_method', 'cash').lower()
 
                 # Map payment method to consistent values
@@ -2706,7 +2706,7 @@ def update_integrated_invoice(invoice_id):
         gross_subtotal = services_subtotal + inventory_subtotal
 
         discount_type = request.form.get('discount_type', 'amount')
-        discount_value = float(request.form.get('discount_value', 0))
+        discount_value = float(request.form.get('discount_value') or 0)
         if discount_type == 'percentage':
             discount_amount = (gross_subtotal * discount_value) / 100
         else:
@@ -2736,8 +2736,8 @@ def update_integrated_invoice(invoice_id):
             igst_amount = 0.0
 
         tax_amount = total_gst
-        additional_charges = float(request.form.get('additional_charges', 0))
-        tips_amount = float(request.form.get('tips_amount', 0))
+        additional_charges = float(request.form.get('additional_charges') or 0)
+        tips_amount = float(request.form.get('tips_amount') or 0)
         total_amount = net_subtotal + total_gst + additional_charges + tips_amount
 
         # Update invoice
