@@ -3065,7 +3065,11 @@ def generate_invoice_preview():
         
         invoice_items = []
         
-        # Process services
+        # Get GST rates from settings
+        service_gst_rate_pct = gst_config_dict.get('service_gst_rate', 5.0)
+        product_gst_rate_pct = gst_config_dict.get('product_gst_rate', 18.0)
+
+        # Process services — include gst_percentage so template uses correct rate per item
         for s in services_raw:
             if s.get('service_id'):
                 invoice_items.append(MockObject(
@@ -3078,10 +3082,11 @@ def generate_invoice_preview():
                     unit='Hrs',
                     discount_percentage=0,
                     deduction_amount=0,
-                    final_amount=float(s.get('total', 0))
+                    final_amount=float(s.get('total', 0)),
+                    gst_percentage=service_gst_rate_pct,
                 ))
-        
-        # Process products
+
+        # Process products — include gst_percentage so template uses correct rate per item
         for p in products_raw:
             if p.get('product_id'):
                 invoice_items.append(MockObject(
@@ -3094,35 +3099,81 @@ def generate_invoice_preview():
                     unit='Pcs',
                     discount_percentage=0,
                     deduction_amount=0,
-                    final_amount=float(p.get('total', 0))
+                    final_amount=float(p.get('total', 0)),
+                    gst_percentage=product_gst_rate_pct,
                 ))
 
-        # Totals
-        grand_total = float(data.get('grand_total', 0))
+        # Compute GST amounts using the same formula as create/update routes
+        services_subtotal = float(data.get('services_subtotal', 0))
+        products_subtotal = float(data.get('products_subtotal', 0))
         discount_amount = float(data.get('discount_amount', 0))
-        taxable_amount = float(data.get('taxable_amount', 0))
-        cgst_amount = float(data.get('cgst_amount', 0))
-        sgst_amount = float(data.get('sgst_amount', 0))
-        igst_amount = float(data.get('igst_amount', 0))
+        additional_charges = float(data.get('additional_charges', 0))
+        tips = float(data.get('tips', 0))
+
+        gross_subtotal = services_subtotal + products_subtotal
+        net_subtotal = max(0.0, gross_subtotal - discount_amount)
+        discount_factor = net_subtotal / gross_subtotal if gross_subtotal > 0 else 1.0
+
+        # Services: 5% GST inclusive
+        service_taxable = services_subtotal * discount_factor
+        service_gst = service_taxable * service_gst_rate_pct / (100.0 + service_gst_rate_pct) if service_gst_rate_pct > 0 else 0.0
+
+        # Products: 18% GST inclusive
+        product_taxable = products_subtotal * discount_factor
+        product_gst = product_taxable * product_gst_rate_pct / (100.0 + product_gst_rate_pct) if product_gst_rate_pct > 0 else 0.0
+
+        total_gst = service_gst + product_gst
+
+        if is_interstate:
+            cgst_amount = 0.0
+            sgst_amount = 0.0
+            igst_amount = total_gst
+        else:
+            cgst_amount = total_gst / 2
+            sgst_amount = total_gst / 2
+            igst_amount = 0.0
+
+        grand_total = net_subtotal + total_gst + additional_charges + tips
 
         mock_invoice = MockObject(
             customer=mock_customer,
             invoice_number='PREVIEW',
-            invoice_date=None, # Will show DD/MM/YYYY
+            invoice_date=__import__('datetime').datetime.now(),
             total_amount=grand_total,
             discount_amount=discount_amount,
-            subtotal=taxable_amount + discount_amount,
-            payment_method='N/A'
+            gross_subtotal=gross_subtotal,
+            net_subtotal=net_subtotal,
+            tax_amount=total_gst,
+            cgst_amount=cgst_amount,
+            sgst_amount=sgst_amount,
+            igst_amount=igst_amount,
+            cgst_rate=0 if is_interstate else service_gst_rate_pct / 2,
+            sgst_rate=0 if is_interstate else service_gst_rate_pct / 2,
+            igst_rate=service_gst_rate_pct if is_interstate else 0,
+            additional_charges=additional_charges,
+            tips_amount=tips,
+            amount_paid=grand_total,
+            balance_due=0.0,
+            payment_method='N/A',
         )
 
         tax_details = {
             'is_interstate': is_interstate,
-            'cgst_rate': gst_config.cgst_rate,
-            'sgst_rate': gst_config.sgst_rate,
-            'igst_rate': gst_config.igst_rate,
+            'cgst_rate': 0 if is_interstate else service_gst_rate_pct / 2,
+            'sgst_rate': 0 if is_interstate else service_gst_rate_pct / 2,
+            'igst_rate': service_gst_rate_pct if is_interstate else 0,
             'cgst_amount': cgst_amount,
             'sgst_amount': sgst_amount,
-            'igst_amount': igst_amount
+            'igst_amount': igst_amount,
+            'service_gst_rate': service_gst_rate_pct,
+            'product_gst_rate': product_gst_rate_pct,
+            'service_cgst_rate': service_gst_rate_pct / 2,
+            'service_sgst_rate': service_gst_rate_pct / 2,
+            'product_cgst_rate': product_gst_rate_pct / 2,
+            'product_sgst_rate': product_gst_rate_pct / 2,
+            'service_gst_amount': service_gst,
+            'product_gst_amount': product_gst,
+            'additional_charges': additional_charges,
         }
 
         # Get business logo
