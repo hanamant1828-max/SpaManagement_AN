@@ -369,6 +369,7 @@ def create_permission():
         except Exception as e:
             db.session.rollback()
             flash(f'Error creating permission: {str(e)}', 'danger')
+            return redirect(url_for('create_permission'))
     
     modules = ['dashboard', 'clients', 'staff', 'services', 'packages', 
                'appointments', 'billing', 'reports', 'expenses', 'inventory', 'settings']

@@ -1941,6 +1941,14 @@ function hideFormLoading(form) {
     }
 }
 
+window.addEventListener('pageshow', function(event) {
+    document.querySelectorAll('button[type="submit"][data-original-text]').forEach(function(btn) {
+        btn.disabled = false;
+        btn.innerHTML = btn.dataset.originalText;
+        delete btn.dataset.originalText;
+    });
+});
+
 // Date picker initialization
 function initializeDatePickers() {
     const dateInputs = document.querySelectorAll('input[type="date"], input[type="datetime-local"]');
