@@ -1217,7 +1217,7 @@ def create_professional_invoice():
         service_quantities = request.form.getlist('service_quantities[]')
         appointment_ids = request.form.getlist('appointment_ids[]')
         staff_ids = request.form.getlist('staff_ids[]')
-        package_ids = request.form.getlist('package_ids[]') # Read package_ids from form
+        package_ids = request.form.getlist('package_assignment_ids[]') # Read package_assignment_ids from form
         deduction_amounts_raw = request.form.getlist('deduction_amounts[]')  # Per-service package deductions
 
         for i, service_id in enumerate(service_ids):
@@ -2137,17 +2137,8 @@ def get_customer_packages(customer_id):
                 except Exception as e:
                     app.logger.error(f"Error getting yearly membership details in API: {e}")
 
-            # CRITICAL FIX: Check PackageBenefitTracker first for accurate session data
-            benefit_tracker = None
-            if hasattr(r, 'package_benefits') and r.package_benefits:
-                # Get the active benefit tracker for this assignment
-                for bt in r.package_benefits:
-                    if bt.is_active:
-                        benefit_tracker = bt
-                        break
-                # If no active tracker, get the most recent one
-                if not benefit_tracker and r.package_benefits:
-                    benefit_tracker = r.package_benefits[0]
+            # Use the outer tracker directly (it is the PackageBenefitTracker for this assignment)
+            benefit_tracker = tracker
 
             # Add sessions data if applicable
             if benefit_tracker and benefit_tracker.benefit_type in ['free', 'discount']:

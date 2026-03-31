@@ -38,8 +38,14 @@ class PackageBillingService:
             and_(
                 PackageBenefitTracker.customer_id == customer_id,
                 PackageBenefitTracker.is_active == True,
-                PackageBenefitTracker.valid_from <= service_date,
-                PackageBenefitTracker.valid_to >= service_date
+                or_(
+                    PackageBenefitTracker.valid_from == None,
+                    PackageBenefitTracker.valid_from <= service_date
+                ),
+                or_(
+                    PackageBenefitTracker.valid_to == None,   # No expiry
+                    PackageBenefitTracker.valid_to >= service_date
+                )
             )
         ).order_by(PackageBenefitTracker.benefit_type).all()
 
@@ -71,6 +77,14 @@ class PackageBillingService:
         if package.package_assignment and package.package_assignment.package_type in ['yearly', 'yearly_membership']:
             return True
 
+        # Prepaid credit packages cover all services (general balance)
+        if package.benefit_type == 'prepaid':
+            return True
+
+        # Unlimited/membership packages cover all services
+        if package.benefit_type == 'unlimited':
+            return True
+
         # Student offers and other discount types - check service assignments
         if package.benefit_type == 'discount':
             if package.service_id == service_id:
@@ -90,6 +104,10 @@ class PackageBillingService:
                 except:
                     return True
             return False
+
+        # Free session packages cover the specific service they are assigned to
+        if package.benefit_type == 'free':
+            return package.service_id == service_id
 
         return False
 
@@ -166,7 +184,18 @@ class PackageBillingService:
             # Find applicable packages
             if manual_package_id:
                 # Staff manually selected a package
+                # manual_package_id may be a PackageBenefitTracker ID or a ServicePackageAssignment ID
                 applicable_package = PackageBenefitTracker.query.get(manual_package_id)
+
+                # If not found as a tracker ID, or belongs to a different customer,
+                # try looking it up as a ServicePackageAssignment ID
+                if not applicable_package or applicable_package.customer_id != customer_id:
+                    applicable_package = PackageBenefitTracker.query.filter_by(
+                        package_assignment_id=manual_package_id,
+                        customer_id=customer_id,
+                        is_active=True
+                    ).first()
+
                 # We need to check if the manually selected package covers the service
                 if not applicable_package or not cls._package_covers_service(applicable_package, service_id):
                     return {
