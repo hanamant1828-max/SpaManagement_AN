@@ -4729,9 +4729,11 @@ function resetCustomerPackages() {
     });
 
     // Collect totals — use textContent for all span-based display values
+    // servicesSubtotal display = NET value after package benefits (set by updateCalculations)
     const servicesSubtotal = parseFloat(document.getElementById('servicesSubtotal')?.textContent.replace(/[₹,\-]/g, '') || 0);
     const productsSubtotal = parseFloat(document.getElementById('productsSubtotal')?.textContent.replace(/[₹,\-]/g, '') || 0);
-    const packageDeductions = parseFloat(document.getElementById('packageDeductionsAmount')?.textContent.replace(/[₹,\-]/g, '') || 0);
+    // packageDeductions element id is 'packageDeductions' (fixed from wrong 'packageDeductionsAmount')
+    const packageBenefit = parseFloat(document.getElementById('packageDeductions')?.textContent.replace(/[₹,\-]/g, '') || 0);
     // discountAmount span may show "-₹52.20" — take absolute value
     const discountAmount = Math.abs(parseFloat(document.getElementById('discountAmount')?.textContent.replace(/[₹,]/g, '') || 0));
     // additionalCharges and tips are <span> elements — use textContent, not .value
@@ -4745,9 +4747,9 @@ function resetCustomerPackages() {
         is_interstate: isInterstate,
         services: services,
         products: products,
-        services_subtotal: servicesSubtotal,
+        services_subtotal: servicesSubtotal,  // NET after package benefit
         products_subtotal: productsSubtotal,
-        package_deductions: packageDeductions,
+        package_benefit: packageBenefit,      // Package benefit amount (for gross_subtotal reconstruction)
         discount_amount: discountAmount,
         additional_charges: additionalCharges,
         tips: tips

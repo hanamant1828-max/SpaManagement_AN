@@ -1218,6 +1218,7 @@ def create_professional_invoice():
         appointment_ids = request.form.getlist('appointment_ids[]')
         staff_ids = request.form.getlist('staff_ids[]')
         package_ids = request.form.getlist('package_ids[]') # Read package_ids from form
+        deduction_amounts_raw = request.form.getlist('deduction_amounts[]')  # Per-service package deductions
 
         for i, service_id in enumerate(service_ids):
             if service_id and str(service_id).strip():
@@ -1246,12 +1247,21 @@ def create_professional_invoice():
                         'message': f'Selected staff member for service #{i+1} not found. Please refresh and try again.'
                     }), 404
 
+                # Read per-service package deduction submitted by the frontend
+                deduction = 0.0
+                if i < len(deduction_amounts_raw) and deduction_amounts_raw[i]:
+                    try:
+                        deduction = float(deduction_amounts_raw[i])
+                    except (ValueError, TypeError):
+                        deduction = 0.0
+
                 services_data.append({
                     'service_id': int(service_id),
                     'quantity': float(service_quantities[i]) if i < len(service_quantities) else 1,
                     'appointment_id': int(appointment_ids[i]) if i < len(appointment_ids) and appointment_ids[i] else None,
                     'staff_id': int(staff_id),
-                    'package_id': package_ids[i] if i < len(package_ids) and package_ids[i] else None # Store package_id for each service
+                    'package_id': package_ids[i] if i < len(package_ids) and package_ids[i] else None,
+                    'deduction_amount': deduction,  # Package benefit deduction for this service
                 })
 
         # Parse inventory data
@@ -1292,18 +1302,25 @@ def create_professional_invoice():
                 })
 
         # Calculate amounts - Service prices are GST INCLUSIVE
-        services_subtotal = 0
+        # gross_services_subtotal = full MRP before package deductions (for display as "Subtotal")
+        gross_services_subtotal = 0
+        total_packages_deduction = 0
         for service_data in services_data:
             service = Service.query.get(service_data['service_id'])
             if service:
-                # Service price includes GST
-                services_subtotal += service.price * service_data['quantity']
+                full_item_total = service.price * service_data['quantity']
+                gross_services_subtotal += full_item_total
+                total_packages_deduction += service_data.get('deduction_amount', 0.0)
+
+        # services_subtotal = net after package deductions (used for GST and total)
+        services_subtotal = max(0.0, gross_services_subtotal - total_packages_deduction)
 
         inventory_subtotal = 0
         for item in inventory_data:
             inventory_subtotal += item['unit_price'] * item['quantity']
 
-        gross_subtotal = services_subtotal + inventory_subtotal
+        # gross_subtotal = full MRP (before any deductions) — shown as "Subtotal" on invoice
+        gross_subtotal = gross_services_subtotal + inventory_subtotal
 
         # Get tax rates from database settings (dynamic GST configuration)
         from modules.settings.settings_queries import get_gst_settings
@@ -1326,11 +1343,14 @@ def create_professional_invoice():
         sgst_total = 0
         igst_total = 0
 
-        # Process services: always use configured service_gst_rate (ignoring per-service override)
+        # Process services: use NET amount (after package deduction) for GST extraction
         for s_idx, service_data in enumerate(services_data):
             service = Service.query.get(service_data['service_id'])
             if service:
-                item_total = service.price * service_data['quantity']
+                full_item_total = service.price * service_data['quantity']
+                deduction = service_data.get('deduction_amount', 0.0)
+                # Net amount after package benefit — GST is extracted from this (inclusive pricing)
+                item_total = max(0.0, full_item_total - deduction)
 
                 item_gst_rate = service_cgst_rate + service_sgst_rate
 
@@ -1384,20 +1404,22 @@ def create_professional_invoice():
 
         inventory_gst_amount = product_gst_total
 
-        # Calculate discount on gross_subtotal (full MRP totals — matches JS updateCalculations)
+        # Calculate discount on net amount after package deductions (matches JS updateCalculations)
+        # net_before_discount = services (after pkg benefit) + products
+        net_before_discount = services_subtotal + inventory_subtotal
         discount_type = request.form.get('discount_type', 'amount')
         discount_value = float(request.form.get('discount_value') or 0)
         if discount_type == 'percentage':
-            discount_amount = (gross_subtotal * discount_value) / 100
+            discount_amount = (net_before_discount * discount_value) / 100
         else:
             discount_amount = discount_value
 
-        # Taxable amount = MRP subtotal minus discount (matches JS taxableAmountAfterTax)
-        taxable_amount = max(0, gross_subtotal - discount_amount)
+        # Taxable amount = net (after package benefit) minus additional discount
+        taxable_amount = max(0, net_before_discount - discount_amount)
 
         # Pro-rata GST adjustment for discount (matches JS discountFactor logic)
-        if gross_subtotal > 0 and discount_amount > 0:
-            adjustment_factor = taxable_amount / gross_subtotal
+        if net_before_discount > 0 and discount_amount > 0:
+            adjustment_factor = taxable_amount / net_before_discount
             total_tax *= adjustment_factor
             cgst_total *= adjustment_factor
             sgst_total *= adjustment_factor
@@ -1472,10 +1494,12 @@ def create_professional_invoice():
             invoice.created_by = current_user.id  # Store who created the invoice
 
             # Professional billing fields
-            invoice.services_subtotal = services_subtotal
+            invoice.services_subtotal = gross_services_subtotal  # Full MRP before package deductions
             invoice.inventory_subtotal = inventory_subtotal
-            invoice.gross_subtotal = gross_subtotal
-            invoice.net_subtotal = net_subtotal
+            invoice.gross_subtotal = gross_subtotal  # Full MRP total (services + products, before any deductions)
+            invoice.packages_deduction = total_packages_deduction  # Total package benefit deducted
+            invoice.total_deductions = total_packages_deduction  # Package + future subscription deductions
+            invoice.net_subtotal = net_subtotal  # After package deductions + discount (taxable base)
             invoice.tax_amount = total_tax
             invoice.discount_amount = discount_amount
             invoice.tips_amount = tips_amount
@@ -1527,8 +1551,9 @@ def create_professional_invoice():
                 payment_methods_dict = {payment_method: total_amount}
 
             # Compute adjusted service/product GST split for storage
-            _adj_factor = taxable_amount / gross_subtotal if gross_subtotal > 0 else 1.0
-            _product_gst_adj = inventory_gst_amount * _adj_factor
+            # Split total GST proportionally between services and products
+            _net_total = services_subtotal + inventory_subtotal  # net after package benefit
+            _product_gst_adj = total_tax * (inventory_subtotal / _net_total) if _net_total > 0 else 0.0
             _service_gst_adj = total_tax - _product_gst_adj
 
             # Tax breakdown for legacy support and invoice printing
@@ -1552,6 +1577,7 @@ def create_professional_invoice():
                 'product_gst_rate': gst_config.get('product_gst_rate', gst_config['cgst_rate'] + gst_config['sgst_rate']),
                 'service_gst_amount': _service_gst_adj,
                 'product_gst_amount': _product_gst_adj,
+                'packages_deduction': total_packages_deduction,
             }
 
             invoice.payment_methods = json.dumps(payment_methods_dict)
@@ -3104,23 +3130,28 @@ def generate_invoice_preview():
                 ))
 
         # Compute GST amounts using the same formula as create/update routes
-        services_subtotal = float(data.get('services_subtotal', 0))
+        # services_subtotal from JS is already NET (after package benefits applied in updateCalculations)
+        services_subtotal_net = float(data.get('services_subtotal', 0))
         products_subtotal = float(data.get('products_subtotal', 0))
+        package_benefit = float(data.get('package_benefit', 0))
         discount_amount = float(data.get('discount_amount', 0))
         additional_charges = float(data.get('additional_charges', 0))
         tips = float(data.get('tips', 0))
 
-        gross_subtotal = services_subtotal + products_subtotal
-        net_subtotal = max(0.0, gross_subtotal - discount_amount)
-        discount_factor = net_subtotal / gross_subtotal if gross_subtotal > 0 else 1.0
+        # gross_subtotal = full MRP before package benefit (for Subtotal display line)
+        gross_subtotal = services_subtotal_net + package_benefit + products_subtotal
+        # net after benefit, before additional discount
+        net_before_discount = services_subtotal_net + products_subtotal
+        net_subtotal = max(0.0, net_before_discount - discount_amount)
+        discount_factor = net_subtotal / net_before_discount if net_before_discount > 0 else 1.0
 
-        # Services: 5% GST inclusive
-        service_taxable = services_subtotal * discount_factor
-        service_gst = service_taxable * service_gst_rate_pct / (100.0 + service_gst_rate_pct) if service_gst_rate_pct > 0 else 0.0
+        # Services: GST extracted from net service amount (inclusive pricing)
+        service_net_after_discount = services_subtotal_net * discount_factor
+        service_gst = service_net_after_discount * service_gst_rate_pct / (100.0 + service_gst_rate_pct) if service_gst_rate_pct > 0 else 0.0
 
-        # Products: 18% GST inclusive
-        product_taxable = products_subtotal * discount_factor
-        product_gst = product_taxable * product_gst_rate_pct / (100.0 + product_gst_rate_pct) if product_gst_rate_pct > 0 else 0.0
+        # Products: GST extracted from net product amount (inclusive pricing)
+        product_net_after_discount = products_subtotal * discount_factor
+        product_gst = product_net_after_discount * product_gst_rate_pct / (100.0 + product_gst_rate_pct) if product_gst_rate_pct > 0 else 0.0
 
         total_gst = service_gst + product_gst
 
@@ -3141,8 +3172,9 @@ def generate_invoice_preview():
             invoice_date=__import__('datetime').datetime.now(),
             total_amount=grand_total,
             discount_amount=discount_amount,
-            gross_subtotal=gross_subtotal,
-            net_subtotal=net_subtotal,
+            gross_subtotal=gross_subtotal,   # Full MRP (for Subtotal display)
+            packages_deduction=package_benefit,  # Package benefit amount
+            net_subtotal=net_subtotal,            # After benefit + discount (taxable base)
             tax_amount=total_gst,
             cgst_amount=cgst_amount,
             sgst_amount=sgst_amount,
@@ -3174,6 +3206,7 @@ def generate_invoice_preview():
             'service_gst_amount': service_gst,
             'product_gst_amount': product_gst,
             'additional_charges': additional_charges,
+            'packages_deduction': package_benefit,
         }
 
         # Get business logo

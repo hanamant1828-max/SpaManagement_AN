@@ -532,8 +532,24 @@
             <!-- GRAND TOTAL -->
             {% set tips_amount = invoice.tips_amount or 0 %}
             {% set additional_charges = invoice.additional_charges or tax_details.get('additional_charges', 0) or 0 %}
+            {% set grand_pkg_deduction = [tax_details.get('packages_deduction', 0), invoice.packages_deduction or 0]|max %}
+            {% set grand_discount = invoice.discount_amount or 0 %}
             <table class="items-table">
                 <tbody>
+                    {% if grand_pkg_deduction > 0 %}
+                    <tr style="background-color: #e8f5e9; color: #2e7d32;">
+                        <td colspan="6"><strong>Package Benefit</strong></td>
+                        <td class="price"></td>
+                        <td class="price"><strong>-₹{{ "%.2f"|format(grand_pkg_deduction) }}</strong></td>
+                    </tr>
+                    {% endif %}
+                    {% if grand_discount > 0 %}
+                    <tr style="background-color: #fff3e0;">
+                        <td colspan="6"><strong>Discount</strong></td>
+                        <td class="price"></td>
+                        <td class="price"><strong>-₹{{ "%.2f"|format(grand_discount) }}</strong></td>
+                    </tr>
+                    {% endif %}
                     {% if additional_charges > 0 %}
                     <tr style="background-color: #e8f5e9;">
                         <td colspan="6"><strong>Additional Charges</strong></td>
@@ -558,10 +574,7 @@
                             </strong>
                         </td>
                         <td class="price">
-                            <strong
-                                >₹{{ "%.2f"|format(invoice.total_amount)
-                                }}</strong
-                            >
+                            <strong>₹{{ "%.2f"|format(invoice.total_amount) }}</strong>
                         </td>
                     </tr>
                 </tbody>
@@ -597,13 +610,20 @@
                     {% set total_tax = cgst_amt + sgst_amt + igst_amt %}
                     {% set svc_gst_amt = tax_details.get('service_gst_amount', 0) %}
                     {% set prd_gst_amt = tax_details.get('product_gst_amount', 0) %}
-                    {% set gross = invoice.gross_subtotal or (invoice.total_amount - total_tax - tips_amt + (invoice.discount_amount or 0)) %}
-                    {% set taxable = invoice.net_subtotal or (invoice.total_amount - total_tax - tips_amt) %}
+                    {% set pkg_deduction = [tax_details.get('packages_deduction', 0), invoice.packages_deduction or 0]|max %}
+                    {% set gross = invoice.gross_subtotal if invoice.gross_subtotal else (invoice.total_amount - total_tax - tips_amt + (invoice.discount_amount or 0) + pkg_deduction) %}
+                    {% set taxable = invoice.net_subtotal if invoice.net_subtotal is not none else (invoice.total_amount - total_tax - tips_amt) %}
                     <div class="subtotal-section">
                         Subtotal: ₹{{ "%.2f"|format(gross) }}
                     </div>
 
                     <table class="summary-table">
+                        {% if pkg_deduction > 0 %}
+                        <tr style="color: #2e7d32;">
+                            <td class="label">Package Benefit:</td>
+                            <td class="value">-₹{{ "%.2f"|format(pkg_deduction) }}</td>
+                        </tr>
+                        {% endif %}
                         <tr>
                             <td class="label">Discount:</td>
                             <td class="value">
