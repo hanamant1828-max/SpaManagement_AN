@@ -572,12 +572,23 @@ def api_quick_add_client():
                 'error': f'Client with phone {phone} already exists'
             }), 400
 
+        # Check if client with same email already exists
+        email = data.get('email', '').strip() or None
+        if email:
+            existing_by_email = Customer.query.filter_by(email=email.lower()).first()
+            if existing_by_email:
+                return jsonify({
+                    'success': False,
+                    'error': 'A client with this email address already exists'
+                }), 409
+            email = email.lower()
+
         # Create new client
         new_client = Customer(
             first_name=first_name,
             last_name=last_name,
             phone=phone,
-            email=data.get('email', '').strip() or None,
+            email=email,
             gender=gender,
             is_active=True
         )
@@ -597,7 +608,14 @@ def api_quick_add_client():
         import traceback
         traceback.print_exc()
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        error_str = str(e).lower()
+        if 'unique constraint' in error_str or 'unique' in error_str:
+            if 'email' in error_str:
+                return jsonify({'success': False, 'error': 'A client with this email address already exists'}), 409
+            if 'phone' in error_str:
+                return jsonify({'success': False, 'error': 'A client with this phone number already exists'}), 409
+            return jsonify({'success': False, 'error': 'A client with these details already exists'}), 409
+        return jsonify({'success': False, 'error': 'Failed to create client'}), 500
 
 
 @app.route('/api/unaki/check-client-conflicts', methods=['POST'])

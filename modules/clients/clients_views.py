@@ -392,7 +392,7 @@ def api_unaki_quick_add_client():
             if not data.get(field):
                 return jsonify({'success': False, 'error': f'{field} is required'}), 400
 
-        # Check for phone duplicates only
+        # Check for phone duplicates
         if data.get('phone'):
             existing = get_customer_by_phone(data['phone'])
             if existing:
@@ -405,6 +405,20 @@ def api_unaki_quick_add_client():
                     }
                 }), 409
 
+        # Check for email duplicates before attempting insert
+        email = data.get('email', '').strip()
+        if email:
+            existing_by_email = get_customer_by_email(email.lower())
+            if existing_by_email:
+                return jsonify({
+                    'success': False,
+                    'error': 'A customer with this email address already exists',
+                    'existing_customer': {
+                        'id': existing_by_email.id,
+                        'name': f"{existing_by_email.first_name} {existing_by_email.last_name}"
+                    }
+                }), 409
+
         # Create customer (email is optional, can be None)
         customer_data = {
             'first_name': data.get('first_name', '').strip().title(),
@@ -414,7 +428,6 @@ def api_unaki_quick_add_client():
         }
 
         # Only add email if it's provided and not empty
-        email = data.get('email', '').strip()
         if email:
             customer_data['email'] = email.lower()
 
@@ -444,6 +457,13 @@ def api_unaki_quick_add_client():
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Unaki quick client creation error: {str(e)}")
+        error_str = str(e).lower()
+        if 'unique constraint' in error_str or 'unique' in error_str:
+            if 'email' in error_str:
+                return jsonify({'success': False, 'error': 'A customer with this email address already exists'}), 409
+            if 'phone' in error_str:
+                return jsonify({'success': False, 'error': 'A customer with this phone number already exists'}), 409
+            return jsonify({'success': False, 'error': 'A customer with these details already exists'}), 409
         return jsonify({'success': False, 'error': 'Failed to create client'}), 500
 
 
